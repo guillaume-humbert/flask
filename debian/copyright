@@ -1,0 +1,14 @@
+This package was debianized by Piotr Ożarowski <piotr@debian.org> on
+Fri, 16 Apr 2010 21:45:12 +0200.
+
+It was downloaded from http://pypi.python.org/pypi/Flask
+
+Copyright © 2010 by Armin Ronacher
+
+License: BSD
+
+The Debian packaging is © 2010, Piotr Ożarowski <piotr@debian.org> and
+is licensed under the BSD as well.
+
+On Debian systems, the complete text of the BSD License can be found in
+`/usr/share/common-licenses/BSD'
