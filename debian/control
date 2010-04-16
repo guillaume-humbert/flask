@@ -1,0 +1,30 @@
+Source: flask
+Section: python
+Priority: optional
+Maintainer: Piotr Ożarowski <piotr@debian.org>
+Uploaders: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
+Build-Depends: debhelper (>= 7), python, python-setuptools (>= 0.6b3), python-support (>= 0.8.4)
+Standards-Version: 3.8.4
+Vcs-Svn: svn://svn.debian.org/python-modules/packages/flask/trunk
+Vcs-Browser: http://svn.debian.org/viewsvn/python-modules/packages/flask/trunk/
+Homepage: http://flask.pocoo.org/
+XS-Python-Version: >= 2.5
+
+
+Package: python-flask
+Architecture: all
+Depends: ${python:Depends}, ${misc:Depends}, python-werkzeug (>= 0.6.1), python-jinja2 (>= 2.4)
+Recommends: python-pkg-resources
+Description: micro web framework based on Werkzeug, Jinja2 and good intentions
+ Flask is a micro web framework for Python based on Werkzeug, Jinja 2 and good
+ intentions. A minimal Flask application looks like that:
+ .
+   from flask import Flask
+   app = Flask(__name__)
+ .
+   @app.route("/")
+   def hello():
+       return "Hello World!"
+ .
+   if __name__ == '__main__':
+       app.run()

@@ -1,0 +1,5 @@
+flask (0.1-1) unstable; urgency=low
+
+  * Initial release (closes: #578093)
+
+ -- Piotr Ożarowski <piotr@debian.org>  Fri, 16 Apr 2010 21:45:12 +0200
