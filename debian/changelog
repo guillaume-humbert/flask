@@ -1,3 +1,10 @@
+flask (0.2-1) unstable; urgency=low
+
+  * New upstream release
+  * Add python-simplejson | python (>= 2.6) to Recommends
+
+ -- Piotr Ożarowski <piotr@debian.org>  Wed, 12 May 2010 11:04:18 +0200
+
 flask (0.1-1) unstable; urgency=low
 
   * Initial release (closes: #578093)

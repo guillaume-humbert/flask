@@ -14,7 +14,7 @@ XS-Python-Version: >= 2.5
 Package: python-flask
 Architecture: all
 Depends: ${python:Depends}, ${misc:Depends}, python-werkzeug (>= 0.6.1), python-jinja2 (>= 2.4)
-Recommends: python-pkg-resources
+Recommends: python-pkg-resources, python-simplejson | python (>= 2.6)
 Description: micro web framework based on Werkzeug, Jinja2 and good intentions
  Flask is a micro web framework for Python based on Werkzeug, Jinja 2 and good
  intentions. A minimal Flask application looks like that:
