@@ -34,7 +34,8 @@ Links
 
 * `website <http://flask.pocoo.org/>`_
 * `documentation <http://flask.pocoo.org/docs/>`_
-* `development version <http://github.com/mitsuhiko/flask/zipball/master#egg=Flask-dev>`_
+* `development version
+  <http://github.com/mitsuhiko/flask/zipball/master#egg=Flask-dev>`_
 
 """
 from setuptools import setup
@@ -42,12 +43,13 @@ from setuptools import setup
 
 setup(
     name='Flask',
-    version='0.1',
+    version='0.2',
     url='http://github.com/mitsuhiko/flask/',
     license='BSD',
     author='Armin Ronacher',
     author_email='armin.ronacher@active-4.com',
-    description='A microframework based on Werkzeug, Jinja2 and good intentions',
+    description='A microframework based on Werkzeug, Jinja2 '
+                'and good intentions',
     long_description=__doc__,
     py_modules=['flask'],
     zip_safe=False,
@@ -57,7 +59,7 @@ setup(
         'Jinja2>=2.4'
     ],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
