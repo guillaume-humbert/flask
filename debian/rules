@@ -1,8 +1,17 @@
 #!/usr/bin/make -f
+	
+export PYTHONPATH=$(CURDIR)
 
 %:
-	dh $@
+	dh $@ --buildsystem python_distutils
+
+build:
+	dh build
+ifeq (,$(findstring nocheck,$(DEB_BUILD_OPTIONS)))
+	make test
+endif
 
 clean:
 	dh clean
-	rm -rf Flask.egg-info/
+	rm -rf Flask.egg-info/ build
+	find . \( -name '*.py[co]' -or -name '\._*' -or -name '\.DS_Store' \) -delete
