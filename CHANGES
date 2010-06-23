@@ -6,12 +6,25 @@ Here you can see the full list of changes between each Flask release.
 Version 0.4
 -----------
 
-Release date to be announced, codename to be selected.
+Released on June 18th 2010, codename Rakia
+
+- added the ability to register application wide error handlers
+  from modules.
+- :meth:`~flask.Flask.after_request` handlers are now also invoked
+  if the request dies with an exception and an error handling page
+  kicks in.
+- test client has not the ability to preserve the request context
+  for a little longer.  This can also be used to trigger custom
+  requests that do not pop the request stack for testing.
+- because the Python standard library caches loggers, the name of
+  the logger is configurable now to better support unittests.
+- added `TESTING` switch that can activate unittesting helpers.
+- the logger switches to `DEBUG` mode now if debug is enabled.
 
 Version 0.3.1
 -------------
 
-Bugfix release, released May 28th
+Bugfix release, released May 28th 2010
 
 - fixed a error reporting bug with :meth:`flask.Config.from_envvar`
 - removed some unused code from flask
@@ -22,7 +35,7 @@ Bugfix release, released May 28th
 Version 0.3
 -----------
 
-Released on May 28th, codename Schnaps
+Released on May 28th 2010, codename Schnaps
 
 - added support for categories for flashed messages.
 - the application now configures a :class:`logging.Handler` and will
@@ -38,7 +51,7 @@ Released on May 28th, codename Schnaps
 Version 0.2
 -----------
 
-Released on May 12th, codename Jägermeister
+Released on May 12th 2010, codename Jägermeister
 
 - various bugfixes
 - integrated JSON support

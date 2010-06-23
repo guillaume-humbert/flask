@@ -16,6 +16,7 @@ import sys
 import flask
 import unittest
 import tempfile
+from logging import StreamHandler
 from contextlib import contextmanager
 from datetime import datetime
 from werkzeug import parse_date, parse_options_header
@@ -57,6 +58,7 @@ class ContextTestCase(unittest.TestCase):
             assert index() == 'Hello World!'
         with app.test_request_context('/meh'):
             assert meh() == 'http://localhost/meh'
+        assert flask._request_ctx_stack.top is None
 
     def test_manual_context_binding(self):
         app = flask.Flask(__name__)
@@ -74,6 +76,36 @@ class ContextTestCase(unittest.TestCase):
             pass
         else:
             assert 0, 'expected runtime error'
+
+    def test_test_client_context_binding(self):
+        app = flask.Flask(__name__)
+        @app.route('/')
+        def index():
+            flask.g.value = 42
+            return 'Hello World!'
+
+        @app.route('/other')
+        def other():
+            1/0
+
+        with app.test_client() as c:
+            resp = c.get('/')
+            assert flask.g.value == 42
+            assert resp.data == 'Hello World!'
+            assert resp.status_code == 200
+
+            resp = c.get('/other')
+            assert not hasattr(flask.g, 'value')
+            assert 'Internal Server Error' in resp.data
+            assert resp.status_code == 500
+            flask.g.value = 23
+
+        try:
+            flask.g.value
+        except (AttributeError, RuntimeError):
+            pass
+        else:
+            raise AssertionError('some kind of exception expected')
 
 
 class BasicFunctionalityTestCase(unittest.TestCase):
@@ -240,6 +272,37 @@ class BasicFunctionalityTestCase(unittest.TestCase):
         assert 'after' in evts
         assert rv == 'request|after'
 
+    def test_after_request_errors(self):
+        app = flask.Flask(__name__)
+        called = []
+        @app.after_request
+        def after_request(response):
+            called.append(True)
+            return response
+        @app.route('/')
+        def fails():
+            1/0
+        rv = app.test_client().get('/')
+        assert rv.status_code == 500
+        assert 'Internal Server Error' in rv.data
+        assert len(called) == 1
+
+    def test_after_request_handler_error(self):
+        called = []
+        app = flask.Flask(__name__)
+        @app.after_request
+        def after_request(response):
+            called.append(True)
+            1/0
+            return response
+        @app.route('/')
+        def fails():
+            1/0
+        rv = app.test_client().get('/')
+        assert rv.status_code == 500
+        assert 'Internal Server Error' in rv.data
+        assert len(called) == 1
+
     def test_error_handling(self):
         app = flask.Flask(__name__)
         @app.errorhandler(404)
@@ -260,7 +323,7 @@ class BasicFunctionalityTestCase(unittest.TestCase):
         assert rv.data == 'not found'
         rv = c.get('/error')
         assert rv.status_code == 500
-        assert 'internal server error' in rv.data
+        assert 'internal server error' == rv.data
 
     def test_response_creation(self):
         app = flask.Flask(__name__)
@@ -536,6 +599,30 @@ class ModuleTestCase(unittest.TestCase):
         app.register_module(admin, url_prefix='/admin')
         assert app.test_client().get('/admin/').data == '42'
 
+    def test_error_handling(self):
+        app = flask.Flask(__name__)
+        admin = flask.Module(__name__, 'admin')
+        @admin.app_errorhandler(404)
+        def not_found(e):
+            return 'not found', 404
+        @admin.app_errorhandler(500)
+        def internal_server_error(e):
+            return 'internal server error', 500
+        @admin.route('/')
+        def index():
+            flask.abort(404)
+        @admin.route('/error')
+        def error():
+            1 // 0
+        app.register_module(admin)
+        c = app.test_client()
+        rv = c.get('/')
+        assert rv.status_code == 404
+        assert rv.data == 'not found'
+        rv = c.get('/error')
+        assert rv.status_code == 500
+        assert 'internal server error' == rv.data
+
 
 class SendfileTestCase(unittest.TestCase):
 
@@ -620,12 +707,22 @@ class SendfileTestCase(unittest.TestCase):
 
 class LoggingTestCase(unittest.TestCase):
 
+    def test_logger_cache(self):
+        app = flask.Flask(__name__)
+        logger1 = app.logger
+        assert app.logger is logger1
+        assert logger1.name == __name__
+        app.logger_name = __name__ + '/test_logger_cache'
+        assert app.logger is not logger1
+
     def test_debug_log(self):
         app = flask.Flask(__name__)
         app.debug = True
+
         @app.route('/')
         def index():
             app.logger.warning('the standard library is dead')
+            app.logger.debug('this is a debug statement')
             return ''
 
         @app.route('/exc')
@@ -636,9 +733,10 @@ class LoggingTestCase(unittest.TestCase):
         with catch_stderr() as err:
             rv = c.get('/')
             out = err.getvalue()
-            assert 'WARNING in flask_tests,' in out
+            assert 'WARNING in flask_tests [' in out
             assert 'flask_tests.py' in out
             assert 'the standard library is dead' in out
+            assert 'this is a debug statement' in out
 
         with catch_stderr() as err:
             try:
@@ -649,9 +747,9 @@ class LoggingTestCase(unittest.TestCase):
                 assert False, 'debug log ate the exception'
 
     def test_exception_logging(self):
-        from logging import StreamHandler
         out = StringIO()
         app = flask.Flask(__name__)
+        app.logger_name = 'flask_tests/test_exception_logging'
         app.logger.addHandler(StreamHandler(out))
 
         @app.route('/')

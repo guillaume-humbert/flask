@@ -16,6 +16,7 @@ import mimetypes
 from datetime import datetime, timedelta
 
 from itertools import chain
+from threading import Lock
 from jinja2 import Environment, PackageLoader, FileSystemLoader
 from werkzeug import Request as RequestBase, Response as ResponseBase, \
      LocalStack, LocalProxy, create_environ, SharedDataMiddleware, \
@@ -49,6 +50,9 @@ try:
     pkg_resources.resource_stream
 except (ImportError, AttributeError):
     pkg_resources = None
+
+# a lock used for logger initialization
+_logger_lock = Lock()
 
 
 class Request(RequestBase):
@@ -163,8 +167,10 @@ class _RequestContext(object):
     def __exit__(self, exc_type, exc_value, tb):
         # do not pop the request stack if we are in debug mode and an
         # exception happened.  This will allow the debugger to still
-        # access the request object in the interactive shell.
-        if tb is None or not self.app.debug:
+        # access the request object in the interactive shell.  Furthermore
+        # the context can be force kept alive for the test client.
+        if not self.request.environ.get('flask._preserve_context') and \
+           (tb is None or not self.app.debug):
             self.pop()
 
 
@@ -207,7 +213,7 @@ def url_for(endpoint, **values):
 def get_template_attribute(template_name, attribute):
     """Loads a macro (or variable) a template exports.  This can be used to
     invoke a macro from within Python code.  If you for example have a
-    template named `_foo.html` with the following contents:
+    template named `_cider.html` with the following contents:
 
     .. sourcecode:: html+jinja
 
@@ -215,7 +221,7 @@ def get_template_attribute(template_name, attribute):
 
     You can access this from Python code like this::
 
-        hello = get_template_attribute('_foo.html', 'hello')
+        hello = get_template_attribute('_cider.html', 'hello')
         return hello('World')
 
     .. versionadded:: 0.2
@@ -294,7 +300,9 @@ def jsonify(*args, **kwargs):
             "id": 42
         }
 
-    This requires Python 2.6 or an installed version of simplejson.
+    This requires Python 2.6 or an installed version of simplejson.  For
+    security reasons only objects are supported toplevel.  For more
+    information about this, have a look at :ref:`json-security`.
 
     .. versionadded:: 0.2
     """
@@ -442,11 +450,11 @@ else:
 class _PackageBoundObject(object):
 
     def __init__(self, import_name):
-        #: the name of the package or module.  Do not change this once
+        #: The name of the package or module.  Do not change this once
         #: it was set by the constructor.
         self.import_name = import_name
 
-        #: where is the app root located?
+        #: Where is the app root located?
         self.root_path = _get_package_path(self.import_name)
 
     def open_resource(self, resource):
@@ -457,7 +465,7 @@ class _PackageBoundObject(object):
             /schemal.sql
             /static
                 /style.css
-            /template
+            /templates
                 /layout.html
                 /index.html
 
@@ -611,6 +619,17 @@ class Module(_PackageBoundObject):
         self._record(lambda s: s.app.template_context_processors
             .setdefault(None, []).append(f))
         return f
+
+    def app_errorhandler(self, code):
+        """Like :meth:`Flask.errorhandler` but for a module.  This
+        handler is used for all requests, even if outside of the module.
+
+        .. versionadded:: 0.4
+        """
+        def decorator(f):
+            self._record(lambda s: s.app.errorhandler(code)(f))
+            return f
+        return decorator
 
     def _record(self, func):
         self._register_events.append(func)
@@ -771,20 +790,20 @@ class Flask(_PackageBoundObject):
         app = Flask(__name__)
     """
 
-    #: the class that is used for request objects.  See :class:`~flask.Request`
+    #: The class that is used for request objects.  See :class:`~flask.Request`
     #: for more information.
     request_class = Request
 
-    #: the class that is used for response objects.  See
+    #: The class that is used for response objects.  See
     #: :class:`~flask.Response` for more information.
     response_class = Response
 
-    #: path for the static files.  If you don't want to use static files
+    #: Path for the static files.  If you don't want to use static files
     #: you can set this value to `None` in which case no URL rule is added
     #: and the development server will no longer serve any static files.
     static_path = '/static'
 
-    #: the debug flag.  Set this to `True` to enable debugging of the
+    #: The debug flag.  Set this to `True` to enable debugging of the
     #: application.  In debug mode the debugger will kick in when an unhandled
     #: exception ocurrs and the integrated server will automatically reload
     #: the application if changes in the code are detected.
@@ -793,7 +812,16 @@ class Flask(_PackageBoundObject):
     #: configuration key.  Defaults to `False`.
     debug = ConfigAttribute('DEBUG')
 
-    #: if a secret key is set, cryptographic components can use this to
+    #: The testing flask.  Set this to `True` to enable the test mode of
+    #: Flask extensions (and in the future probably also Flask itself).
+    #: For example this might activate unittest helpers that have an
+    #: additional runtime cost which should not be enabled by default.
+    #:
+    #: This attribute can also be configured from the config with the
+    #: `TESTING` configuration key.  Defaults to `False`.
+    testing = ConfigAttribute('TESTING')
+
+    #: If a secret key is set, cryptographic components can use this to
     #: sign cookies and other things.  Set this to a complex random value
     #: when you want to use the secure cookie for instance.
     #:
@@ -801,7 +829,7 @@ class Flask(_PackageBoundObject):
     #: `SECRET_KEY` configuration key.  Defaults to `None`.
     secret_key = ConfigAttribute('SECRET_KEY')
 
-    #: The secure cookie uses this for the name of the session cookie
+    #: The secure cookie uses this for the name of the session cookie.
     #:
     #: This attribute can also be configured from the config with the
     #: `SESSION_COOKIE_NAME` configuration key.  Defaults to ``'session'``
@@ -826,55 +854,67 @@ class Flask(_PackageBoundObject):
     #: `USE_X_SENDFILE` configuration key.  Defaults to `False`.
     use_x_sendfile = ConfigAttribute('USE_X_SENDFILE')
 
-    #: the logging format used for the debug logger.  This is only used when
+    #: The name of the logger to use.  By default the logger name is the
+    #: package name passed to the constructor.
+    #:
+    #: .. versionadded:: 0.4
+    logger_name = ConfigAttribute('LOGGER_NAME')
+
+    #: The logging format used for the debug logger.  This is only used when
     #: the application is in debug mode, otherwise the attached logging
     #: handler does the formatting.
     #:
     #: .. versionadded:: 0.3
     debug_log_format = (
         '-' * 80 + '\n' +
-        '%(levelname)s in %(module)s, %(pathname)s:%(lineno)d]:\n' +
+        '%(levelname)s in %(module)s [%(pathname)s:%(lineno)d]:\n' +
         '%(message)s\n' +
         '-' * 80
     )
 
-    #: options that are passed directly to the Jinja2 environment
+    #: Options that are passed directly to the Jinja2 environment.
     jinja_options = ImmutableDict(
         autoescape=True,
         extensions=['jinja2.ext.autoescape', 'jinja2.ext.with_']
     )
 
-    #: default configuration parameters
+    #: Default configuration parameters.
     default_config = ImmutableDict({
         'DEBUG':                                False,
+        'TESTING':                              False,
         'SECRET_KEY':                           None,
         'SESSION_COOKIE_NAME':                  'session',
         'PERMANENT_SESSION_LIFETIME':           timedelta(days=31),
-        'USE_X_SENDFILE':                       False
+        'USE_X_SENDFILE':                       False,
+        'LOGGER_NAME':                          None
     })
 
     def __init__(self, import_name):
         _PackageBoundObject.__init__(self, import_name)
 
-        #: the configuration dictionary as :class:`Config`.  This behaves
+        #: The configuration dictionary as :class:`Config`.  This behaves
         #: exactly like a regular dictionary but supports additional methods
         #: to load a config from files.
         self.config = Config(self.root_path, self.default_config)
 
-        #: a dictionary of all view functions registered.  The keys will
+        #: Prepare the deferred setup of the logger.
+        self._logger = None
+        self.logger_name = self.import_name
+
+        #: A dictionary of all view functions registered.  The keys will
         #: be function names which are also used to generate URLs and
         #: the values are the function objects themselves.
         #: to register a view function, use the :meth:`route` decorator.
         self.view_functions = {}
 
-        #: a dictionary of all registered error handlers.  The key is
+        #: A dictionary of all registered error handlers.  The key is
         #: be the error code as integer, the value the function that
         #: should handle that error.
         #: To register a error handler, use the :meth:`errorhandler`
         #: decorator.
         self.error_handlers = {}
 
-        #: a dictionary with lists of functions that should be called at the
+        #: A dictionary with lists of functions that should be called at the
         #: beginning of the request.  The key of the dictionary is the name of
         #: the module this function is active for, `None` for all requests.
         #: This can for example be used to open database connections or
@@ -882,7 +922,7 @@ class Flask(_PackageBoundObject):
         #: function here, use the :meth:`before_request` decorator.
         self.before_request_funcs = {}
 
-        #: a dictionary with lists of functions that should be called after
+        #: A dictionary with lists of functions that should be called after
         #: each request.  The key of the dictionary is the name of the module
         #: this function is active for, `None` for all requests.  This can for
         #: example be used to open database connections or getting hold of the
@@ -890,7 +930,7 @@ class Flask(_PackageBoundObject):
         #: :meth:`before_request` decorator.
         self.after_request_funcs = {}
 
-        #: a dictionary with list of functions that are called without argument
+        #: A dictionary with list of functions that are called without argument
         #: to populate the template context.  They key of the dictionary is the
         #: name of the module this function is active for, `None` for all
         #: requests.  Each returns a dictionary that the template context is
@@ -900,7 +940,7 @@ class Flask(_PackageBoundObject):
             None: [_default_template_ctx_processor]
         }
 
-        #: the :class:`~werkzeug.routing.Map` for this instance.  You can use
+        #: The :class:`~werkzeug.routing.Map` for this instance.  You can use
         #: this to change the routing converters after the class was created
         #: but before any routes are connected.  Example::
         #:
@@ -928,7 +968,7 @@ class Flask(_PackageBoundObject):
                 self.static_path: target
             })
 
-        #: the Jinja2 environment.  It is created from the
+        #: The Jinja2 environment.  It is created from the
         #: :attr:`jinja_options` and the loader that is returned
         #: by the :meth:`create_jinja_loader` function.
         self.jinja_env = Environment(loader=self.create_jinja_loader(),
@@ -939,7 +979,7 @@ class Flask(_PackageBoundObject):
         )
         self.jinja_env.filters['tojson'] = _tojson_filter
 
-    @cached_property
+    @property
     def logger(self):
         """A :class:`logging.Logger` object for this application.  The
         default configuration is to log to stderr if the application is
@@ -952,17 +992,27 @@ class Flask(_PackageBoundObject):
 
         .. versionadded:: 0.3
         """
-        from logging import getLogger, StreamHandler, Formatter, DEBUG
-        class DebugHandler(StreamHandler):
-            def emit(x, record):
-                if self.debug:
-                    StreamHandler.emit(x, record)
-        handler = DebugHandler()
-        handler.setLevel(DEBUG)
-        handler.setFormatter(Formatter(self.debug_log_format))
-        logger = getLogger(self.import_name)
-        logger.addHandler(handler)
-        return logger
+        if self._logger and self._logger.name == self.logger_name:
+            return self._logger
+        with _logger_lock:
+            if self._logger and self._logger.name == self.logger_name:
+                return self._logger
+            from logging import getLogger, StreamHandler, Formatter, \
+                                Logger,  DEBUG
+            class DebugLogger(Logger):
+                def getEffectiveLevel(x):
+                    return DEBUG if self.debug else Logger.getEffectiveLevel(x)
+            class DebugHandler(StreamHandler):
+                def emit(x, record):
+                    StreamHandler.emit(x, record) if self.debug else None
+            handler = DebugHandler()
+            handler.setLevel(DEBUG)
+            handler.setFormatter(Formatter(self.debug_log_format))
+            logger = getLogger(self.logger_name)
+            logger.__class__ = DebugLogger
+            logger.addHandler(handler)
+            self._logger = logger
+            return logger
 
     def create_jinja_loader(self):
         """Creates the Jinja loader.  By default just a package loader for
@@ -1010,9 +1060,40 @@ class Flask(_PackageBoundObject):
     def test_client(self):
         """Creates a test client for this application.  For information
         about unit testing head over to :ref:`testing`.
+
+        The test client can be used in a `with` block to defer the closing down
+        of the context until the end of the `with` block.  This is useful if
+        you want to access the context locals for testing::
+
+            with app.test_client() as c:
+                rv = c.get('/?vodka=42')
+                assert request.args['vodka'] == '42'
+
+        .. versionchanged:: 0.4
+           added support for `with` block usage for the client.
         """
         from werkzeug import Client
-        return Client(self, self.response_class, use_cookies=True)
+        class FlaskClient(Client):
+            preserve_context = context_preserved = False
+            def open(self, *args, **kwargs):
+                if self.context_preserved:
+                    _request_ctx_stack.pop()
+                    self.context_preserved = False
+                kwargs.setdefault('environ_overrides', {}) \
+                    ['flask._preserve_context'] = self.preserve_context
+                old = _request_ctx_stack.top
+                try:
+                    return Client.open(self, *args, **kwargs)
+                finally:
+                    self.context_preserved = _request_ctx_stack.top is not old
+            def __enter__(self):
+                self.preserve_context = True
+                return self
+            def __exit__(self, exc_type, exc_value, tb):
+                self.preserve_context = False
+                if self.context_preserved:
+                    _request_ctx_stack.pop()
+        return FlaskClient(self, self.response_class, use_cookies=True)
 
     def open_session(self, request):
         """Creates or opens a new session.  Default implementation stores all
@@ -1236,8 +1317,8 @@ class Flask(_PackageBoundObject):
     def handle_exception(self, e):
         """Default exception handling that kicks in when an exception
         occours that is not catched.  In debug mode the exception will
-        be re-raised immediately, otherwise it is logged an the handler
-        for an 500 internal server error is used.  If no such handler
+        be re-raised immediately, otherwise it is logged and the handler
+        for a 500 internal server error is used.  If no such handler
         exists, a default 500 internal server error message is displayed.
 
         .. versionadded: 0.3
@@ -1351,6 +1432,12 @@ class Flask(_PackageBoundObject):
         Then you still have the original application object around and
         can continue to call methods on it.
 
+        .. versionchanged:: 0.4
+           The :meth:`after_request` functions are now called even if an
+           error handler took over request processing.  This ensures that
+           even if an exception happens database have the chance to
+           properly close the connection.
+
         :param environ: a WSGI environment
         :param start_response: a callable accepting a status code,
                                a list of headers and an optional
@@ -1362,6 +1449,9 @@ class Flask(_PackageBoundObject):
                 if rv is None:
                     rv = self.dispatch_request()
                 response = self.make_response(rv)
+            except Exception, e:
+                response = self.make_response(self.handle_exception(e))
+            try:
                 response = self.process_response(response)
             except Exception, e:
                 response = self.make_response(self.handle_exception(e))

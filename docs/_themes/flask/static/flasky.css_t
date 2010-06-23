@@ -128,7 +128,7 @@ div.sphinxsidebar p {
     color: #555;
     margin: 10px 0;
 }
- 
+
 div.sphinxsidebar ul {
     margin: 10px 0;
     padding: 0;
@@ -173,7 +173,7 @@ div.body h5 { font-size: 100%; }
 div.body h6 { font-size: 100%; }
  
 a.headerlink {
-    color: white;
+    color: #ddd;
     padding: 0 4px;
     text-decoration: none;
 }
@@ -288,6 +288,13 @@ table.footnote {
     margin: 15px 0;
     width: 100%;
     border: 1px solid #eee;
+    background: #fdfdfd;
+    font-size: 0.9em;
+}
+
+table.footnote + table.footnote {
+    margin-top: -15px;
+    border-top: none;
 }
 
 table.field-list th {
@@ -298,8 +305,13 @@ table.field-list td {
     padding: 0;
 }
 
+table.footnote td.label {
+    width: 0px;
+    padding: 0.3em 0 0.3em 0.5em;
+}
+
 table.footnote td {
-    padding: 0.5em;
+    padding: 0.3em 0.5em;
 }
 
 dl {
@@ -341,11 +353,27 @@ tt {
 
 tt.xref, a tt {
     background-color: #FBFBFB;
-    text-decoration: none!important;
+    border-bottom: 1px solid white;
 }
 
 a.reference {
     text-decoration: none;
+    border-bottom: 1px dotted #004B6B;
+}
+
+a.reference:hover {
+    border-bottom: 1px solid #6D4100;
+}
+
+a.footnote-reference {
+    text-decoration: none;
+    font-size: 0.7em;
+    vertical-align: top;
+    border-bottom: 1px dotted #004B6B;
+}
+
+a.footnote-reference:hover {
+    border-bottom: 1px solid #6D4100;
 }
 
 a:hover tt {

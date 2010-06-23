@@ -70,7 +70,7 @@ low-level file handle and a random file name, the latter we use as
 database name.  We just have to keep the `db_fd` around so that we can use
 the :func:`os.close` function to close the file.
 
-If we now run that testsuite, we should see the following output::
+If we now run that test suite, we should see the following output::
 
     $ python flaskr_tests.py
 
@@ -181,11 +181,11 @@ which is the intended behavior.
 
 Running that should now give us three passing tests::
 
-    $ python flaskr_tests.py 
+    $ python flaskr_tests.py
     ...
     ----------------------------------------------------------------------
     Ran 3 tests in 0.332s
-    
+
     OK
 
 For more complex tests with headers and status codes, check out the
@@ -218,3 +218,27 @@ All the other objects that are context bound can be used the same.
 If you want to test your application with different configurations and
 there does not seem to be a good way to do that, consider switching to
 application factories (see :ref:`app-factories`).
+
+
+Keeping the Context Around
+--------------------------
+
+.. versionadded:: 0.4
+
+Sometimes it can be helpful to trigger a regular request but keep the
+context around for a little longer so that additional introspection can
+happen.  With Flask 0.4 this is possible by using the
+:meth:`~flask.Flask.test_client` with a `with` block::
+
+    app = flask.Flask(__name__)
+
+    with app.test_client() as c:
+        rv = c.get('/?tequila=42')
+        assert request.args['tequila'] == '42'
+
+If you would just be using the :meth:`~flask.Flask.test_client` without
+the `with` block, the `assert` would fail with an error because `request`
+is no longer available (because used outside of an actual request).
+Keep in mind however that :meth:`~flask.Flask.after_request` functions
+are already called at that point so your database connection and
+everything involved is probably already closed down.
