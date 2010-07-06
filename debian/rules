@@ -3,7 +3,7 @@
 export PYTHONPATH=$(CURDIR)
 
 %:
-	dh $@ --buildsystem python_distutils
+	dh $@ --buildsystem python_distutils --with python2
 
 build:
 	dh build
