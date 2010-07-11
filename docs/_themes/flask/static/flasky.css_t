@@ -2,11 +2,8 @@
  * flasky.css_t
  * ~~~~~~~~~~~~
  *
- * Sphinx stylesheet -- flasky theme based on nature theme.
- *
- * :copyright: Copyright 2007-2010 by the Sphinx team, see AUTHORS.
- * :license: BSD, see LICENSE for details.
- *
+ * :copyright: Copyright 2010 by Armin Ronacher.
+ * :license: Flask Design License, see LICENSE for details.
  */
 
 {% set page_width = '940px' %}
@@ -195,6 +192,11 @@ div.admonition {
     border-bottom: 1px solid #ccc;
 }
 
+dd div.admonition {
+    margin-left: -60px;
+    padding-left: 60px;
+}
+
 div.admonition p.admonition-title {
     font-family: 'Garamond', 'Georgia', serif;
     font-weight: normal;
@@ -327,6 +329,11 @@ blockquote {
     margin: 0 0 0 30px;
     padding: 0;
 }
+
+ul, ol {
+    margin: 10px 0 10px 30px;
+    padding: 0;
+}
  
 pre {
     background: #eee;
@@ -335,7 +342,7 @@ pre {
     line-height: 1.3em;
 }
 
-dl pre, blockquote pre {
+dl pre, blockquote pre, li pre {
     margin-left: -60px;
     padding-left: 60px;
 }

@@ -3,6 +3,39 @@ Flask Changelog
 
 Here you can see the full list of changes between each Flask release.
 
+Version 0.5.1
+-------------
+
+Bugfix Release, released on July 6th 2010
+
+- fixes an issue with template loading from directories when modules
+  where used.
+
+
+Version 0.5
+-----------
+
+Released on July 6th 2010, codename Calvados
+
+- fixed a bug with subdomains that was caused by the inability to
+  specify the server name.  The server name can now be set with
+  the `SERVER_NAME` config key.  This key is now also used to set
+  the session cookie cross-subdomain wide.
+- autoescaping is no longer active for all templates.  Instead it
+  is only active for ``.html``, ``.htm``, ``.xml`` and ``.xhtml``.
+  Inside templates this behaviour can be changed with the
+  ``autoescape`` tag.
+- refactored Flask internally.  It now consists of more than a
+  single file.
+- :func:`flask.send_file` now emits etags and has the ability to
+  do conditional responses builtin.
+- (temporarily) dropped support for zipped applications.  This was a
+  rarely used feature and led to some confusing behaviour.
+- added support for per-package template and static-file directories.
+- removed support for `create_jinja_loader` which is no longer used
+  in 0.5 due to the improved module support.
+- added a helper function to expose files from any directory.
+
 Version 0.4
 -----------
 
@@ -24,7 +57,7 @@ Released on June 18th 2010, codename Rakia
 Version 0.3.1
 -------------
 
-Bugfix release, released May 28th 2010
+Bugfix release, released on May 28th 2010
 
 - fixed a error reporting bug with :meth:`flask.Config.from_envvar`
 - removed some unused code from flask
