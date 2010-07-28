@@ -5,8 +5,17 @@ Web applications usually face all kinds of security problems and it's very
 hard to get everything right.  Flask tries to solve a few of these things
 for you, but there are a couple more you have to take care of yourself.
 
+.. _xss:
+
 Cross-Site Scripting (XSS)
 --------------------------
+
+Cross site scripting is the concept of injecting arbitrary HTML (and with
+it JavaScript) into the context of a website.  To rememdy this, developers
+have to properly escape text so that it cannot include arbitrary HTML
+tags.  For more information on that have a look at the Wikipedia article
+on `Cross-Site Scripting
+<http://en.wikipedia.org/wiki/Cross-site_scripting>`_.
 
 Flask configures Jinja2 to automatically escape all values unless
 explicitly told otherwise.  This should rule out all XSS problems caused
@@ -20,6 +29,31 @@ careful:
 -   sending out textfiles from uploaded files.  Some browsers are using
     content-type guessing based on the first few bytes so users could
     trick a browser to execute HTML.
+
+Another thing that is very important are unquoted attributes.  While
+Jinja2 can protect you from XSS issues by escaping HTML, there is one
+thing it cannot protect you from: XSS by attribute injection.  To counter
+this possible attack vector, be sure to always quote your attributes with
+either double or single quotes when using Jinja expressions in them:
+
+.. sourcecode:: html+jinja
+
+   <a href="{{ href }}">the text</a>
+
+Why is this necessary?  Because if you would not be doing that, an
+attacker could easily inject custom JavaScript handlers.  For example an
+attacker could inject this piece of HTML+JavaScript:
+
+.. sourcecode:: html
+
+   onmouseover=alert(document.cookie)
+
+When the user would then move with the mouse over the link, the cookie
+would be presented to the user in an alert window.  But instead of showing
+the cookie to the user, a good attacker might also execute any other
+JavaScript code.  In combination with CSS injections the attacker might
+even make the element fill out the entire page so that the user would
+just have to have the mouse anywhere on the page to trigger the attack.
 
 Cross-Site Request Forgery (CSRF)
 ---------------------------------

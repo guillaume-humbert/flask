@@ -3,6 +3,43 @@ Flask Changelog
 
 Here you can see the full list of changes between each Flask release.
 
+Version 0.6
+-----------
+
+Released on July 27th 2010, codename Whisky
+
+- after request functions are now called in reverse order of
+  registration.
+- OPTIONS is now automatically implemented by Flask unless the
+  application explictly adds 'OPTIONS' as method to the URL rule.
+  In this case no automatic OPTIONS handling kicks in.
+- static rules are now even in place if there is no static folder
+  for the module.  This was implemented to aid GAE which will
+  remove the static folder if it's part of a mapping in the .yml
+  file.
+- the :attr:`~flask.Flask.config` is now available in the templates
+  as `config`.
+- context processors will no longer override values passed directly
+  to the render function.
+- added the ability to limit the incoming request data with the
+  new ``MAX_CONTENT_LENGTH`` configuration value.
+- the endpoint for the :meth:`flask.Module.add_url_rule` method
+  is now optional to be consistent with the function of the
+  same name on the application object.
+- added a :func:`flask.make_response` function that simplifies
+  creating response object instances in views.
+- added signalling support based on blinker.  This feature is currently
+  optional and supposed to be used by extensions and applications.  If
+  you want to use it, make sure to have `blinker`_ installed.
+- refactored the way url adapters are created.  This process is now
+  fully customizable with the :meth:`~flask.Flask.create_url_adapter`
+  method.
+- modules can now register for a subdomain instead of just an URL
+  prefix.  This makes it possible to bind a whole module to a
+  configurable subdomain.
+
+.. _blinker: http://pypi.python.org/pypi/blinker
+
 Version 0.5.2
 -------------
 
@@ -11,7 +48,6 @@ Bugfix Release, released on July 15th 2010
 - fixed another issue with loading templates from directories when
   modules were used.
 
-
 Version 0.5.1
 -------------
 
@@ -19,7 +55,6 @@ Bugfix Release, released on July 6th 2010
 
 - fixes an issue with template loading from directories when modules
   where used.
-
 
 Version 0.5
 -----------

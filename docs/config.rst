@@ -62,13 +62,39 @@ The following configuration values are used internally by Flask:
 ``LOGGER_NAME``                 the name of the logger
 ``SERVER_NAME``                 the name of the server.  Required for
                                 subdomain support (eg: ``'localhost'``)
+``MAX_CONTENT_LENGTH``          If set to a value in bytes, Flask will
+                                reject incoming requests with a
+                                content length greater than this by
+                                returning a 413 status code.
 =============================== =========================================
+
+.. admonition:: More on ``SERVER_NAME``
+
+   The ``SERVER_NAME`` key is used for the subdomain support.  Because
+   Flask cannot guess the subdomain part without the knowledge of the
+   actual server name, this is required if you want to work with
+   subdomains.  This is also used for the session cookie.
+
+   Please keep in mind that not only Flask has the problem of not knowing
+   what subdomains are, your web browser does as well.  Most modern web
+   browsers will not allow cross-subdomain cookies to be set on a
+   server name without dots in it.  So if your server name is
+   ``'localhost'`` you will not be able to set a cookie for
+   ``'localhost'`` and every subdomain of it.  Please chose a different
+   server name in that case, like ``'myapplication.local'`` and add
+   this name + the subdomains you want to use into your host config
+   or setup a local `bind`_.
+
+.. _bind: https://www.isc.org/software/bind
 
 .. versionadded:: 0.4
    ``LOGGER_NAME``
 
 .. versionadded:: 0.5
    ``SERVER_NAME``
+
+.. versionadded:: 0.6
+   ``MAX_CONTENT_LENGTH``
 
 Configuring from Files
 ----------------------

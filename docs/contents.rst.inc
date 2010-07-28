@@ -12,9 +12,11 @@ instructions for web development with Flask.
    installation
    quickstart
    tutorial/index
+   templating
    testing
    errorhandling
    config
+   signals
    shell
    patterns/index
    deploying/index
@@ -44,6 +46,7 @@ Design notes, legal information and changelog are here for the interested.
    security
    unicode
    extensiondev
+   styleguide
    upgrading
    changelog
    license

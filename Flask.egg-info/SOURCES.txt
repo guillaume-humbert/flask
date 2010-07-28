@@ -14,7 +14,6 @@ Flask.egg-info/requires.txt
 Flask.egg-info/top_level.txt
 docs/.DS_Store
 docs/.gitignore
-docs/LICENSE
 docs/Makefile
 docs/api.rst
 docs/becomingbig.rst
@@ -38,6 +37,9 @@ docs/make.bat
 docs/quickstart.rst
 docs/security.rst
 docs/shell.rst
+docs/signals.rst
+docs/styleguide.rst
+docs/templating.rst
 docs/testing.rst
 docs/unicode.rst
 docs/upgrading.rst
@@ -124,10 +126,12 @@ flask/helpers.py
 flask/logging.py
 flask/module.py
 flask/session.py
+flask/signals.py
 flask/templating.py
 flask/testing.py
 flask/wrappers.py
 tests/flask_tests.py
+tests/flaskext_test.py
 tests/moduleapp/__init__.py
 tests/moduleapp/apps/__init__.py
 tests/moduleapp/apps/admin/__init__.py
@@ -141,5 +145,6 @@ tests/templates/_macro.html
 tests/templates/context_template.html
 tests/templates/escaping_template.html
 tests/templates/mail.txt
+tests/templates/simple_template.html
 tests/templates/template_filter.html
 tests/templates/nested/nested.txt

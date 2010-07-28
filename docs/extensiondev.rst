@@ -264,9 +264,60 @@ development.  If you want to learn more, it's a very good idea to check
 out existing extensions on the `Flask Extension Registry`_.  If you feel
 lost there is still the `mailinglist`_ and the `IRC channel`_ to get some
 ideas for nice looking APIs.  Especially if you do something nobody before
-you did, it might be a very good idea to get some more input.
+you did, it might be a very good idea to get some more input.  This not
+only to get an idea about what people might want to have from an
+extension, but also to avoid having multiple developers working on pretty
+much the same side by side.
 
-Remember: good API design is hard :(
+Remember: good API design is hard, so introduce your project on the
+mailinglist, and let other developers give you a helping hand with
+designing the API.
+
+The best Flask extensions are extensions that share common idioms for the
+API.  And this can only work if collaboration happens early.
+
+
+Approved Extensions
+-------------------
+
+Flask also has the concept of approved extensions.  Approved extensions
+are tested as part of Flask itself to ensure extensions do not break on
+new releases.  These approved extensions are listed on the `Flask
+Extension Registry`_ and marked appropriately.  If you want your own
+extension to be approved you have to follow these guidelines:
+
+1.  An approved Flask extension must provide exactly one package or module
+    inside the `flaskext` namespace package.
+2.  It must ship a testsuite that can either be invoked with ``make test``
+    or ``python setup.py test``.  For testsuites invoked with ``make
+    test`` the extension has to ensure that all dependencies for the test
+    are installed automatically, in case of ``python setup.py test``
+    dependencies for tests alone can be specified in the `setup.py`
+    file.  The testsuite also has to be part of the distribution.
+3.  APIs of approved extensions will be checked for the following
+    characteristics:
+
+    -   an approved extension has to support multiple applications
+        running in the same Python process.
+    -   it must be possible to use the factory pattern for creating
+        applications.
+
+4.  The license must be BSD/MIT/WTFPL licensed.
+5.  The naming scheme for official extensions is *Flask-ExtensionName* or
+    *ExtensionName-Flask*.
+6.  Approved extensions must define all their dependencies in the
+    `setup.py` file unless a dependency cannot be met because it is not
+    available on PyPI.
+7.  The extension must have documentation that uses one of the two Flask
+    themes for Sphinx documentation.
+8.  The setup.py description (and thus the PyPI description) has to
+    link to the documentation, website (if there is one) and there
+    must be a link to automatically install the development version
+    (``PackageName==dev``).
+9.  The ``zip_safe`` flag in the setup script must be set to ``False``,
+    even if the extension would be safe for zipping.
+10. An extension currently has to support Python 2.5, 2.6 as well as
+    Python 2.7
 
 
 .. _Flask Extension Wizard:

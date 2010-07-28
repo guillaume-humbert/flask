@@ -19,6 +19,25 @@ installation, make sure to pass it the ``-U`` parameter::
 
     $ easy_install -U Flask
 
+Version 0.6
+-----------
+
+Flask 0.6 comes with a backwards incompatible change which affects the
+order of after-request handlers.  Previously they were called in the order
+of the registration, now they are called in reverse order.  This change
+was made so that Flask behaves more like people expected it to work and
+how other systems handle request pre- and postprocessing.  If you
+dependend on the order of execution of post-request functions, be sure to
+change the order.
+
+Another change that breaks backwards compatibility is that context
+processors will no longer override values passed directly to the template
+rendering function.  If for example `request` is as variable passed
+directly to the template, the default context processor will not override
+it with the current request object.  This makes it easier to extend
+context processors later to inject additional variables without breaking
+existing template not expecting them.
+
 Version 0.5
 -----------
 
