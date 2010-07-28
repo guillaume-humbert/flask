@@ -1,3 +1,10 @@
+flask (0.6-1) unstable; urgency=low
+
+  * New upstream release
+  * Standards-Version bumped to 3.9.1 (no changes needed)
+
+ -- Piotr Ożarowski <piotr@debian.org>  Wed, 28 Jul 2010 17:46:02 +0200
+
 flask (0.5.2-1) unstable; urgency=low
 
   * New upstream release
