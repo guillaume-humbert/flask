@@ -1,3 +1,9 @@
+flask (0.6.1-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Piotr Ożarowski <piotr@debian.org>  Sat, 15 Jan 2011 20:49:53 +0100
+
 flask (0.6-1) unstable; urgency=low
 
   * New upstream release

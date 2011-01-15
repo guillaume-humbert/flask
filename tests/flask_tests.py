@@ -120,6 +120,17 @@ class BasicFunctionalityTestCase(unittest.TestCase):
         assert sorted(rv.allow) == ['GET', 'HEAD', 'OPTIONS', 'POST']
         assert rv.data == ''
 
+    def test_options_on_multiple_rules(self):
+        app = flask.Flask(__name__)
+        @app.route('/', methods=['GET', 'POST'])
+        def index():
+            return 'Hello World'
+        @app.route('/', methods=['PUT'])
+        def index_put():
+            return 'Aha!'
+        rv = app.test_client().open('/', method='OPTIONS')
+        assert sorted(rv.allow) == ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT']
+
     def test_request_dispatching(self):
         app = flask.Flask(__name__)
         @app.route('/')
@@ -219,7 +230,13 @@ class BasicFunctionalityTestCase(unittest.TestCase):
             flask.session['test'] = 42
             flask.session.permanent = permanent
             return ''
-        rv = app.test_client().get('/')
+
+        @app.route('/test')
+        def test():
+            return unicode(flask.session.permanent)
+
+        client = app.test_client()
+        rv = client.get('/')
         assert 'set-cookie' in rv.headers
         match = re.search(r'\bexpires=([^;]+)', rv.headers['set-cookie'])
         expires = parse_date(match.group())
@@ -227,6 +244,9 @@ class BasicFunctionalityTestCase(unittest.TestCase):
         assert expires.year == expected.year
         assert expires.month == expected.month
         assert expires.day == expected.day
+
+        rv = client.get('/test')
+        assert rv.data == 'True'
 
         permanent = False
         rv = app.test_client().get('/')
@@ -756,6 +776,8 @@ class ModuleTestCase(unittest.TestCase):
         assert rv.data == 'Hello from the Frontend'
         rv = c.get('/admin/')
         assert rv.data == 'Hello from the Admin'
+        rv = c.get('/admin/index2')
+        assert rv.data == 'Hello from the Admin'
         rv = c.get('/admin/static/test.txt')
         assert rv.data.strip() == 'Admin File'
         rv = c.get('/admin/static/css/test.css')
@@ -794,6 +816,21 @@ class ModuleTestCase(unittest.TestCase):
                 pass
             else:
                 assert 0, 'expected exception'
+
+            # testcase for a security issue that may exist on windows systems
+            import os
+            import ntpath
+            old_path = os.path
+            os.path = ntpath
+            try:
+                try:
+                    f('..\\__init__.py')
+                except NotFound:
+                    pass
+                else:
+                    assert 0, 'expected exception'
+            finally:
+                os.path = old_path
 
 
 class SendfileTestCase(unittest.TestCase):
@@ -1026,6 +1063,15 @@ class SubdomainTestCase(unittest.TestCase):
 
         rv = c.get('/', 'http://test.localhost/')
         assert rv.data == 'test index'
+
+    def test_module_static_path_subdomain(self):
+        app = flask.Flask(__name__)
+        app.config['SERVER_NAME'] = 'example.com'
+        from subdomaintestmodule import mod
+        app.register_module(mod)
+        c = app.test_client()
+        rv = c.get('/static/hello.txt', 'http://foo.example.com/')
+        assert rv.data.strip() == 'Hello Subdomain'
 
     def test_subdomain_matching(self):
         app = flask.Flask(__name__)
