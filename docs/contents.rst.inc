@@ -17,6 +17,9 @@ instructions for web development with Flask.
    errorhandling
    config
    signals
+   views
+   reqcontext
+   blueprints
    shell
    patterns/index
    deploying/index

@@ -14,13 +14,17 @@ import os
 import re
 import sys
 import flask
+import flask.views
 import unittest
-import tempfile
+import warnings
+from threading import Thread
 from logging import StreamHandler
 from contextlib import contextmanager
+from functools import update_wrapper
 from datetime import datetime
-from werkzeug import parse_date, parse_options_header, http_date
+from werkzeug import parse_date, parse_options_header
 from werkzeug.exceptions import NotFound
+from werkzeug.http import parse_set_header
 from jinja2 import TemplateNotFound
 from cStringIO import StringIO
 
@@ -29,19 +33,66 @@ sys.path.append(os.path.join(example_path, 'flaskr'))
 sys.path.append(os.path.join(example_path, 'minitwit'))
 
 
+def has_encoding(name):
+    try:
+        import codecs
+        codecs.lookup(name)
+        return True
+    except LookupError:
+        return False
+
+
 # config keys used for the ConfigTestCase
 TEST_KEY = 'foo'
 SECRET_KEY = 'devkey'
 
 
+# import moduleapp here because it uses deprecated features and we don't
+# want to see the warnings
+warnings.simplefilter('ignore', DeprecationWarning)
+from moduleapp import app as moduleapp
+warnings.simplefilter('default', DeprecationWarning)
+
+
+@contextmanager
+def catch_warnings():
+    """Catch warnings in a with block in a list"""
+    # make sure deprecation warnings are active in tests
+    warnings.simplefilter('default', category=DeprecationWarning)
+
+    filters = warnings.filters
+    warnings.filters = filters[:]
+    old_showwarning = warnings.showwarning
+    log = []
+    def showwarning(message, category, filename, lineno, file=None, line=None):
+        log.append(locals())
+    try:
+        warnings.showwarning = showwarning
+        yield log
+    finally:
+        warnings.filters = filters
+        warnings.showwarning = old_showwarning
+
+
 @contextmanager
 def catch_stderr():
+    """Catch stderr in a StringIO"""
     old_stderr = sys.stderr
     sys.stderr = rv = StringIO()
     try:
         yield rv
     finally:
         sys.stderr = old_stderr
+
+
+def emits_module_deprecation_warning(f):
+    def new_f(*args, **kwargs):
+        with catch_warnings() as log:
+            f(*args, **kwargs)
+            assert log, 'expected deprecation warning'
+            for entry in log:
+                assert 'Modules are deprecated' in str(entry['message'])
+    return update_wrapper(new_f, f)
 
 
 class ContextTestCase(unittest.TestCase):
@@ -61,6 +112,18 @@ class ContextTestCase(unittest.TestCase):
             assert meh() == 'http://localhost/meh'
         assert flask._request_ctx_stack.top is None
 
+    def test_context_test(self):
+        app = flask.Flask(__name__)
+        assert not flask.request
+        assert not flask.has_request_context()
+        ctx = app.test_request_context()
+        ctx.push()
+        try:
+            assert flask.request
+            assert flask.has_request_context()
+        finally:
+            ctx.pop()
+
     def test_manual_context_binding(self):
         app = flask.Flask(__name__)
         @app.route('/')
@@ -73,7 +136,7 @@ class ContextTestCase(unittest.TestCase):
         ctx.pop()
         try:
             index()
-        except AttributeError:
+        except RuntimeError:
             pass
         else:
             assert 0, 'expected runtime error'
@@ -178,6 +241,44 @@ class BasicFunctionalityTestCase(unittest.TestCase):
         assert rv.status_code == 405
         assert sorted(rv.allow) == ['GET', 'HEAD', 'OPTIONS', 'POST']
 
+    def test_werkzeug_routing(self):
+        from werkzeug.routing import Submount, Rule
+        app = flask.Flask(__name__)
+        app.url_map.add(Submount('/foo', [
+            Rule('/bar', endpoint='bar'),
+            Rule('/', endpoint='index')
+        ]))
+        def bar():
+            return 'bar'
+        def index():
+            return 'index'
+        app.view_functions['bar'] = bar
+        app.view_functions['index'] = index
+
+        c = app.test_client()
+        assert c.get('/foo/').data == 'index'
+        assert c.get('/foo/bar').data == 'bar'
+
+    def test_endpoint_decorator(self):
+        from werkzeug.routing import Submount, Rule
+        app = flask.Flask(__name__)
+        app.url_map.add(Submount('/foo', [
+            Rule('/bar', endpoint='bar'),
+            Rule('/', endpoint='index')
+        ]))
+
+        @app.endpoint('bar')
+        def bar():
+            return 'bar'
+
+        @app.endpoint('index')
+        def index():
+            return 'index'
+
+        c = app.test_client()
+        assert c.get('/foo/').data == 'index'
+        assert c.get('/foo/bar').data == 'bar'
+
     def test_session(self):
         app = flask.Flask(__name__)
         app.secret_key = 'testkey'
@@ -204,6 +305,20 @@ class BasicFunctionalityTestCase(unittest.TestCase):
             flask.session['testing'] = 42
             return 'Hello World'
         rv = app.test_client().get('/', 'http://example.com/')
+        assert 'domain=.example.com' in rv.headers['set-cookie'].lower()
+        assert 'httponly' in rv.headers['set-cookie'].lower()
+
+    def test_session_using_server_name_and_port(self):
+        app = flask.Flask(__name__)
+        app.config.update(
+            SECRET_KEY='foo',
+            SERVER_NAME='example.com:8080'
+        )
+        @app.route('/')
+        def index():
+            flask.session['testing'] = 42
+            return 'Hello World'
+        rv = app.test_client().get('/', 'http://example.com:8080/')
         assert 'domain=.example.com' in rv.headers['set-cookie'].lower()
         assert 'httponly' in rv.headers['set-cookie'].lower()
 
@@ -316,36 +431,69 @@ class BasicFunctionalityTestCase(unittest.TestCase):
         assert 'after' in evts
         assert rv == 'request|after'
 
-    def test_after_request_errors(self):
-        app = flask.Flask(__name__)
+    def test_teardown_request_handler(self):
         called = []
-        @app.after_request
-        def after_request(response):
+        app = flask.Flask(__name__)
+        @app.teardown_request
+        def teardown_request(exc):
             called.append(True)
-            return response
+            return "Ignored"
         @app.route('/')
-        def fails():
-            1/0
+        def root():
+            return "Response"
         rv = app.test_client().get('/')
-        assert rv.status_code == 500
-        assert 'Internal Server Error' in rv.data
+        assert rv.status_code == 200
+        assert 'Response' in rv.data
         assert len(called) == 1
 
-    def test_after_request_handler_error(self):
+    def test_teardown_request_handler_debug_mode(self):
         called = []
         app = flask.Flask(__name__)
-        @app.after_request
-        def after_request(response):
+        app.testing = True
+        @app.teardown_request
+        def teardown_request(exc):
             called.append(True)
-            1/0
-            return response
+            return "Ignored"
+        @app.route('/')
+        def root():
+            return "Response"
+        rv = app.test_client().get('/')
+        assert rv.status_code == 200
+        assert 'Response' in rv.data
+        assert len(called) == 1
+
+    def test_teardown_request_handler_error(self):
+        called = []
+        app = flask.Flask(__name__)
+        @app.teardown_request
+        def teardown_request1(exc):
+            assert type(exc) == ZeroDivisionError
+            called.append(True)
+            # This raises a new error and blows away sys.exc_info(), so we can
+            # test that all teardown_requests get passed the same original
+            # exception.
+            try:
+                raise TypeError
+            except:
+                pass
+        @app.teardown_request
+        def teardown_request2(exc):
+            assert type(exc) == ZeroDivisionError
+            called.append(True)
+            # This raises a new error and blows away sys.exc_info(), so we can
+            # test that all teardown_requests get passed the same original
+            # exception.
+            try:
+                raise TypeError
+            except:
+                pass
         @app.route('/')
         def fails():
             1/0
         rv = app.test_client().get('/')
         assert rv.status_code == 500
         assert 'Internal Server Error' in rv.data
-        assert len(called) == 1
+        assert len(called) == 2
 
     def test_before_after_request_order(self):
         called = []
@@ -361,15 +509,21 @@ class BasicFunctionalityTestCase(unittest.TestCase):
             called.append(4)
             return response
         @app.after_request
-        def after1(response):
+        def after2(response):
             called.append(3)
             return response
+        @app.teardown_request
+        def finish1(exc):
+            called.append(6)
+        @app.teardown_request
+        def finish2(exc):
+            called.append(5)
         @app.route('/')
         def index():
             return '42'
         rv = app.test_client().get('/')
         assert rv.data == '42'
-        assert called == [1, 2, 3, 4]
+        assert called == [1, 2, 3, 4, 5, 6]
 
     def test_error_handling(self):
         app = flask.Flask(__name__)
@@ -392,6 +546,35 @@ class BasicFunctionalityTestCase(unittest.TestCase):
         rv = c.get('/error')
         assert rv.status_code == 500
         assert 'internal server error' == rv.data
+
+    def test_user_error_handling(self):
+        class MyException(Exception):
+            pass
+
+        app = flask.Flask(__name__)
+        @app.errorhandler(MyException)
+        def handle_my_exception(e):
+            assert isinstance(e, MyException)
+            return '42'
+        @app.route('/')
+        def index():
+            raise MyException()
+
+        c = app.test_client()
+        assert c.get('/').data == '42'
+
+    def test_teardown_on_pop(self):
+        buffer = []
+        app = flask.Flask(__name__)
+        @app.teardown_request
+        def end_of_request(exception):
+            buffer.append(exception)
+
+        ctx = app.test_request_context()
+        ctx.push()
+        assert buffer == []
+        ctx.pop()
+        assert buffer == [None]
 
     def test_response_creation(self):
         app = flask.Flask(__name__)
@@ -479,8 +662,188 @@ class BasicFunctionalityTestCase(unittest.TestCase):
         else:
             assert "Expected ValueError"
 
+    def test_request_locals(self):
+        self.assertEqual(repr(flask.g), '<LocalProxy unbound>')
+        self.assertFalse(flask.g)
+
+    def test_proper_test_request_context(self):
+        app = flask.Flask(__name__)
+        app.config.update(
+            SERVER_NAME='localhost.localdomain:5000'
+        )
+
+        @app.route('/')
+        def index():
+            return None
+
+        @app.route('/', subdomain='foo')
+        def sub():
+            return None
+
+        with app.test_request_context('/'):
+            assert flask.url_for('index', _external=True) == 'http://localhost.localdomain:5000/'
+
+        with app.test_request_context('/'):
+            assert flask.url_for('sub', _external=True) == 'http://foo.localhost.localdomain:5000/'
+
+        try:
+            with app.test_request_context('/', environ_overrides={'HTTP_HOST': 'localhost'}):
+                pass
+        except Exception, e:
+            assert isinstance(e, ValueError)
+            assert str(e) == "the server name provided " + \
+                    "('localhost.localdomain:5000') does not match the " + \
+                    "server name from the WSGI environment ('localhost')", str(e)
+
+        try:
+            app.config.update(SERVER_NAME='localhost')
+            with app.test_request_context('/', environ_overrides={'SERVER_NAME': 'localhost'}):
+                pass
+        except ValueError, e:
+            raise ValueError(
+                "No ValueError exception should have been raised \"%s\"" % e
+            )
+
+        try:
+            app.config.update(SERVER_NAME='localhost:80')
+            with app.test_request_context('/', environ_overrides={'SERVER_NAME': 'localhost:80'}):
+                pass
+        except ValueError, e:
+            raise ValueError(
+                "No ValueError exception should have been raised \"%s\"" % e
+            )
+
+    def test_test_app_proper_environ(self):
+        app = flask.Flask(__name__)
+        app.config.update(
+            SERVER_NAME='localhost.localdomain:5000'
+        )
+        @app.route('/')
+        def index():
+            return 'Foo'
+
+        @app.route('/', subdomain='foo')
+        def subdomain():
+            return 'Foo SubDomain'
+
+        try:
+            rv = app.test_client().get('/')
+            assert rv.data == 'Foo'
+        except ValueError, e:
+            raise ValueError(
+                "No ValueError exception should have been raised \"%s\"" % e
+            )
+
+        try:
+            rv = app.test_client().get('/', 'http://localhost.localdomain:5000')
+            assert rv.data == 'Foo'
+        except ValueError, e:
+            raise ValueError(
+                "No ValueError exception should have been raised \"%s\"" % e
+            )
+
+        try:
+            rv = app.test_client().get('/', 'https://localhost.localdomain:5000')
+            assert rv.data == 'Foo'
+        except ValueError, e:
+            raise ValueError(
+                "No ValueError exception should have been raised \"%s\"" % e
+            )
+
+        try:
+            app.config.update(SERVER_NAME='localhost.localdomain')
+            rv = app.test_client().get('/', 'https://localhost.localdomain')
+            assert rv.data == 'Foo'
+        except ValueError, e:
+            raise ValueError(
+                "No ValueError exception should have been raised \"%s\"" % e
+            )
+
+        try:
+            app.config.update(SERVER_NAME='localhost.localdomain:443')
+            rv = app.test_client().get('/', 'https://localhost.localdomain')
+            assert rv.data == 'Foo'
+        except ValueError, e:
+            assert str(e) == "the server name provided " + \
+                    "('localhost.localdomain:443') does not match the " + \
+                    "server name from the WSGI environment ('localhost.localdomain')", str(e)
+
+        try:
+            app.config.update(SERVER_NAME='localhost.localdomain')
+            app.test_client().get('/', 'http://foo.localhost')
+        except ValueError, e:
+            assert str(e) == "the server name provided " + \
+                    "('localhost.localdomain') does not match the " + \
+                    "server name from the WSGI environment ('foo.localhost')", str(e)
+
+        try:
+            rv = app.test_client().get('/', 'http://foo.localhost.localdomain')
+            assert rv.data == 'Foo SubDomain'
+        except ValueError, e:
+            raise ValueError(
+                "No ValueError exception should have been raised \"%s\"" % e
+            )
+
+    def test_exception_propagation(self):
+        def apprunner(configkey):
+            app = flask.Flask(__name__)
+            @app.route('/')
+            def index():
+                1/0
+            c = app.test_client()
+            if config_key is not None:
+                app.config[config_key] = True
+                try:
+                    resp = c.get('/')
+                except Exception:
+                    pass
+                else:
+                    self.fail('expected exception')
+            else:
+                assert c.get('/').status_code == 500
+
+        # we have to run this test in an isolated thread because if the
+        # debug flag is set to true and an exception happens the context is
+        # not torn down.  This causes other tests that run after this fail
+        # when they expect no exception on the stack.
+        for config_key in 'TESTING', 'PROPAGATE_EXCEPTIONS', 'DEBUG', None:
+            t = Thread(target=apprunner, args=(config_key,))
+            t.start()
+            t.join()
+
+    def test_max_content_length(self):
+        app = flask.Flask(__name__)
+        app.config['MAX_CONTENT_LENGTH'] = 64
+        @app.before_request
+        def always_first():
+            flask.request.form['myfile']
+            assert False
+        @app.route('/accept', methods=['POST'])
+        def accept_file():
+            flask.request.form['myfile']
+            assert False
+        @app.errorhandler(413)
+        def catcher(error):
+            return '42'
+
+        c = app.test_client()
+        rv = c.post('/accept', data={'myfile': 'foo' * 100})
+        assert rv.data == '42'
+
 
 class JSONTestCase(unittest.TestCase):
+
+    def test_json_body_encoding(self):
+        app = flask.Flask(__name__)
+        app.testing = True
+        @app.route('/')
+        def index():
+            return flask.request.json
+
+        c = app.test_client()
+        resp = c.get('/', data=u'"Hällo Wörld"'.encode('iso-8859-15'),
+                     content_type='application/json; charset=iso-8859-15')
+        assert resp.data == u'Hällo Wörld'.encode('utf-8')
 
     def test_jsonify(self):
         d = dict(a=23, b=42, c=[1, 2, 3])
@@ -530,6 +893,9 @@ class JSONTestCase(unittest.TestCase):
         rv = app.test_client().get(u'/?foo=정상처리'.encode('euc-kr'))
         assert rv.status_code == 200
         assert rv.data == u'정상처리'.encode('utf-8')
+
+    if not has_encoding('euc-kr'):
+        test_modified_url_encoding = None
 
 
 class TemplatingTestCase(unittest.TestCase):
@@ -640,20 +1006,34 @@ class TemplatingTestCase(unittest.TestCase):
         rv = app.test_client().get('/')
         assert rv.data == 'dcba'
 
+    def test_custom_template_loader(self):
+        class MyFlask(flask.Flask):
+            def create_global_jinja_loader(self):
+                from jinja2 import DictLoader
+                return DictLoader({'index.html': 'Hello Custom World!'})
+        app = MyFlask(__name__)
+        @app.route('/')
+        def index():
+            return flask.render_template('index.html')
+        c = app.test_client()
+        rv = c.get('/')
+        assert rv.data == 'Hello Custom World!'
+
 
 class ModuleTestCase(unittest.TestCase):
 
+    @emits_module_deprecation_warning
     def test_basic_module(self):
         app = flask.Flask(__name__)
         admin = flask.Module(__name__, 'admin', url_prefix='/admin')
         @admin.route('/')
-        def index():
+        def admin_index():
             return 'admin index'
         @admin.route('/login')
-        def login():
+        def admin_login():
             return 'admin login'
         @admin.route('/logout')
-        def logout():
+        def admin_logout():
             return 'admin logout'
         @app.route('/')
         def index():
@@ -665,6 +1045,7 @@ class ModuleTestCase(unittest.TestCase):
         assert c.get('/admin/login').data == 'admin login'
         assert c.get('/admin/logout').data == 'admin logout'
 
+    @emits_module_deprecation_warning
     def test_default_endpoint_name(self):
         app = flask.Flask(__name__)
         mod = flask.Module(__name__, 'frontend')
@@ -677,6 +1058,7 @@ class ModuleTestCase(unittest.TestCase):
         with app.test_request_context():
             assert flask.url_for('frontend.index') == '/'
 
+    @emits_module_deprecation_warning
     def test_request_processing(self):
         catched = []
         app = flask.Flask(__name__)
@@ -689,7 +1071,7 @@ class ModuleTestCase(unittest.TestCase):
             catched.append('after-admin')
             return response
         @admin.route('/')
-        def index():
+        def admin_index():
             return 'the admin'
         @app.before_request
         def before_request():
@@ -712,6 +1094,7 @@ class ModuleTestCase(unittest.TestCase):
         assert catched == ['before-app', 'before-admin',
                            'after-admin', 'after-app']
 
+    @emits_module_deprecation_warning
     def test_context_processors(self):
         app = flask.Flask(__name__)
         admin = flask.Module(__name__, 'admin', url_prefix='/admin')
@@ -728,13 +1111,14 @@ class ModuleTestCase(unittest.TestCase):
         def index():
             return flask.render_template_string('{{ a }}{{ b }}{{ c }}')
         @admin.route('/')
-        def index():
+        def admin_index():
             return flask.render_template_string('{{ a }}{{ b }}{{ c }}')
         app.register_module(admin)
         c = app.test_client()
         assert c.get('/').data == '13'
         assert c.get('/admin/').data == '123'
 
+    @emits_module_deprecation_warning
     def test_late_binding(self):
         app = flask.Flask(__name__)
         admin = flask.Module(__name__, 'admin')
@@ -744,6 +1128,7 @@ class ModuleTestCase(unittest.TestCase):
         app.register_module(admin, url_prefix='/admin')
         assert app.test_client().get('/admin/').data == '42'
 
+    @emits_module_deprecation_warning
     def test_error_handling(self):
         app = flask.Flask(__name__)
         admin = flask.Module(__name__, 'admin')
@@ -769,7 +1154,8 @@ class ModuleTestCase(unittest.TestCase):
         assert 'internal server error' == rv.data
 
     def test_templates_and_static(self):
-        from moduleapp import app
+        app = moduleapp
+        app.testing = True
         c = app.test_client()
 
         rv = c.get('/')
@@ -799,19 +1185,19 @@ class ModuleTestCase(unittest.TestCase):
             assert flask.render_template('nested/nested.txt') == 'I\'m nested'
 
     def test_safe_access(self):
-        from moduleapp import app
+        app = moduleapp
 
         with app.test_request_context():
             f = app.view_functions['admin.static']
 
             try:
-                rv = f('/etc/passwd')
+                f('/etc/passwd')
             except NotFound:
                 pass
             else:
                 assert 0, 'expected exception'
             try:
-                rv = f('../__init__.py')
+                f('../__init__.py')
             except NotFound:
                 pass
             else:
@@ -831,6 +1217,152 @@ class ModuleTestCase(unittest.TestCase):
                     assert 0, 'expected exception'
             finally:
                 os.path = old_path
+
+    @emits_module_deprecation_warning
+    def test_endpoint_decorator(self):
+        from werkzeug.routing import Submount, Rule
+        from flask import Module
+
+        app = flask.Flask(__name__)
+        app.testing = True
+        app.url_map.add(Submount('/foo', [
+            Rule('/bar', endpoint='bar'),
+            Rule('/', endpoint='index')
+        ]))
+        module = Module(__name__, __name__)
+
+        @module.endpoint('bar')
+        def bar():
+            return 'bar'
+
+        @module.endpoint('index')
+        def index():
+            return 'index'
+
+        app.register_module(module)
+
+        c = app.test_client()
+        assert c.get('/foo/').data == 'index'
+        assert c.get('/foo/bar').data == 'bar'
+
+
+class BlueprintTestCase(unittest.TestCase):
+
+    def test_blueprint_specific_error_handling(self):
+        frontend = flask.Blueprint('frontend', __name__)
+        backend = flask.Blueprint('backend', __name__)
+        sideend = flask.Blueprint('sideend', __name__)
+
+        @frontend.errorhandler(403)
+        def frontend_forbidden(e):
+            return 'frontend says no', 403
+
+        @frontend.route('/frontend-no')
+        def frontend_no():
+            flask.abort(403)
+
+        @backend.errorhandler(403)
+        def backend_forbidden(e):
+            return 'backend says no', 403
+
+        @backend.route('/backend-no')
+        def backend_no():
+            flask.abort(403)
+
+        @sideend.route('/what-is-a-sideend')
+        def sideend_no():
+            flask.abort(403)
+
+        app = flask.Flask(__name__)
+        app.register_blueprint(frontend)
+        app.register_blueprint(backend)
+        app.register_blueprint(sideend)
+
+        @app.errorhandler(403)
+        def app_forbidden(e):
+            return 'application itself says no', 403
+
+        c = app.test_client()
+
+        assert c.get('/frontend-no').data == 'frontend says no'
+        assert c.get('/backend-no').data == 'backend says no'
+        assert c.get('/what-is-a-sideend').data == 'application itself says no'
+
+    def test_blueprint_url_definitions(self):
+        bp = flask.Blueprint('test', __name__)
+
+        @bp.route('/foo', defaults={'baz': 42})
+        def foo(bar, baz):
+            return '%s/%d' % (bar, baz)
+
+        @bp.route('/bar')
+        def bar(bar):
+            return unicode(bar)
+
+        app = flask.Flask(__name__)
+        app.register_blueprint(bp, url_prefix='/1', url_defaults={'bar': 23})
+        app.register_blueprint(bp, url_prefix='/2', url_defaults={'bar': 19})
+
+        c = app.test_client()
+        self.assertEqual(c.get('/1/foo').data, u'23/42')
+        self.assertEqual(c.get('/2/foo').data, u'19/42')
+        self.assertEqual(c.get('/1/bar').data, u'23')
+        self.assertEqual(c.get('/2/bar').data, u'19')
+
+    def test_templates_and_static(self):
+        from blueprintapp import app
+        c = app.test_client()
+
+        rv = c.get('/')
+        assert rv.data == 'Hello from the Frontend'
+        rv = c.get('/admin/')
+        assert rv.data == 'Hello from the Admin'
+        rv = c.get('/admin/index2')
+        assert rv.data == 'Hello from the Admin'
+        rv = c.get('/admin/static/test.txt')
+        assert rv.data.strip() == 'Admin File'
+        rv = c.get('/admin/static/css/test.css')
+        assert rv.data.strip() == '/* nested file */'
+
+        with app.test_request_context():
+            assert flask.url_for('admin.static', filename='test.txt') \
+                == '/admin/static/test.txt'
+
+        with app.test_request_context():
+            try:
+                flask.render_template('missing.html')
+            except TemplateNotFound, e:
+                assert e.name == 'missing.html'
+            else:
+                assert 0, 'expected exception'
+
+        with flask.Flask(__name__).test_request_context():
+            assert flask.render_template('nested/nested.txt') == 'I\'m nested'
+
+    def test_dotted_names(self):
+        frontend = flask.Blueprint('myapp.frontend', __name__)
+        backend = flask.Blueprint('myapp.backend', __name__)
+
+        @frontend.route('/fe')
+        def frontend_index():
+            return flask.url_for('myapp.backend.backend_index')
+
+        @frontend.route('/fe2')
+        def frontend_page2():
+            return flask.url_for('.frontend_index')
+
+        @backend.route('/be')
+        def backend_index():
+            return flask.url_for('myapp.frontend.frontend_index')
+
+        app = flask.Flask(__name__)
+        app.register_blueprint(frontend)
+        app.register_blueprint(backend)
+
+        c = app.test_client()
+        self.assertEqual(c.get('/fe').data.strip(), '/be')
+        self.assertEqual(c.get('/fe2').data.strip(), '/fe')
+        self.assertEqual(c.get('/be').data.strip(), '/fe')
 
 
 class SendfileTestCase(unittest.TestCase):
@@ -857,46 +1389,64 @@ class SendfileTestCase(unittest.TestCase):
 
     def test_send_file_object(self):
         app = flask.Flask(__name__)
-        with app.test_request_context():
-            f = open(os.path.join(app.root_path, 'static/index.html'))
-            rv = flask.send_file(f)
-            with app.open_resource('static/index.html') as f:
-                assert rv.data == f.read()
-            assert rv.mimetype == 'text/html'
+        with catch_warnings() as captured:
+            with app.test_request_context():
+                f = open(os.path.join(app.root_path, 'static/index.html'))
+                rv = flask.send_file(f)
+                with app.open_resource('static/index.html') as f:
+                    assert rv.data == f.read()
+                assert rv.mimetype == 'text/html'
+            # mimetypes + etag
+            assert len(captured) == 2
 
         app.use_x_sendfile = True
-        with app.test_request_context():
-            f = open(os.path.join(app.root_path, 'static/index.html'))
-            rv = flask.send_file(f)
-            assert rv.mimetype == 'text/html'
-            assert 'x-sendfile' in rv.headers
-            assert rv.headers['x-sendfile'] == \
-                os.path.join(app.root_path, 'static/index.html')
+        with catch_warnings() as captured:
+            with app.test_request_context():
+                f = open(os.path.join(app.root_path, 'static/index.html'))
+                rv = flask.send_file(f)
+                assert rv.mimetype == 'text/html'
+                assert 'x-sendfile' in rv.headers
+                assert rv.headers['x-sendfile'] == \
+                    os.path.join(app.root_path, 'static/index.html')
+            # mimetypes + etag
+            assert len(captured) == 2
 
         app.use_x_sendfile = False
         with app.test_request_context():
-            f = StringIO('Test')
-            rv = flask.send_file(f)
-            assert rv.data == 'Test'
-            assert rv.mimetype == 'application/octet-stream'
-            f = StringIO('Test')
-            rv = flask.send_file(f, mimetype='text/plain')
-            assert rv.data == 'Test'
-            assert rv.mimetype == 'text/plain'
+            with catch_warnings() as captured:
+                f = StringIO('Test')
+                rv = flask.send_file(f)
+                assert rv.data == 'Test'
+                assert rv.mimetype == 'application/octet-stream'
+            # etags
+            assert len(captured) == 1
+            with catch_warnings() as captured:
+                f = StringIO('Test')
+                rv = flask.send_file(f, mimetype='text/plain')
+                assert rv.data == 'Test'
+                assert rv.mimetype == 'text/plain'
+            # etags
+            assert len(captured) == 1
 
         app.use_x_sendfile = True
-        with app.test_request_context():
-            f = StringIO('Test')
-            rv = flask.send_file(f)
-            assert 'x-sendfile' not in rv.headers
+        with catch_warnings() as captured:
+            with app.test_request_context():
+                f = StringIO('Test')
+                rv = flask.send_file(f)
+                assert 'x-sendfile' not in rv.headers
+            # etags
+            assert len(captured) == 1
 
     def test_attachment(self):
         app = flask.Flask(__name__)
-        with app.test_request_context():
-            f = open(os.path.join(app.root_path, 'static/index.html'))
-            rv = flask.send_file(f, as_attachment=True)
-            value, options = parse_options_header(rv.headers['Content-Disposition'])
-            assert value == 'attachment'
+        with catch_warnings() as captured:
+            with app.test_request_context():
+                f = open(os.path.join(app.root_path, 'static/index.html'))
+                rv = flask.send_file(f, as_attachment=True)
+                value, options = parse_options_header(rv.headers['Content-Disposition'])
+                assert value == 'attachment'
+            # mimetypes + etag
+            assert len(captured) == 2
 
         with app.test_request_context():
             assert options['filename'] == 'index.html'
@@ -907,7 +1457,8 @@ class SendfileTestCase(unittest.TestCase):
 
         with app.test_request_context():
             rv = flask.send_file(StringIO('Test'), as_attachment=True,
-                                 attachment_filename='index.txt')
+                                 attachment_filename='index.txt',
+                                 add_etags=False)
             assert rv.mimetype == 'text/plain'
             value, options = parse_options_header(rv.headers['Content-Disposition'])
             assert value == 'attachment'
@@ -940,7 +1491,7 @@ class LoggingTestCase(unittest.TestCase):
         c = app.test_client()
 
         with catch_stderr() as err:
-            rv = c.get('/')
+            c.get('/')
             out = err.getvalue()
             assert 'WARNING in flask_tests [' in out
             assert 'flask_tests.py' in out
@@ -1036,13 +1587,26 @@ class ConfigTestCase(unittest.TestCase):
                 assert "'FOO_SETTINGS' is not set" in str(e)
             else:
                 assert 0, 'expected exception'
-            not app.config.from_envvar('FOO_SETTINGS', silent=True)
+            assert not app.config.from_envvar('FOO_SETTINGS', silent=True)
 
             os.environ = {'FOO_SETTINGS': 'flask_tests.py'}
             assert app.config.from_envvar('FOO_SETTINGS')
             self.common_object_test(app)
         finally:
             os.environ = env
+
+    def test_config_missing(self):
+        app = flask.Flask(__name__)
+        try:
+            app.config.from_pyfile('missing.cfg')
+        except IOError, e:
+            msg = str(e)
+            assert msg.startswith('[Errno 2] Unable to load configuration '
+                                  'file (No such file or directory):')
+            assert msg.endswith("missing.cfg'")
+        else:
+            assert 0, 'expected config'
+        assert not app.config.from_pyfile('missing.cfg', silent=True)
 
 
 class SubdomainTestCase(unittest.TestCase):
@@ -1064,6 +1628,7 @@ class SubdomainTestCase(unittest.TestCase):
         rv = c.get('/', 'http://test.localhost/')
         assert rv.data == 'test index'
 
+    @emits_module_deprecation_warning
     def test_module_static_path_subdomain(self):
         app = flask.Flask(__name__)
         app.config['SERVER_NAME'] = 'example.com'
@@ -1084,6 +1649,7 @@ class SubdomainTestCase(unittest.TestCase):
         rv = c.get('/', 'http://mitsuhiko.localhost/')
         assert rv.data == 'index for mitsuhiko'
 
+    @emits_module_deprecation_warning
     def test_module_subdomain_support(self):
         app = flask.Flask(__name__)
         mod = flask.Module(__name__, 'test', subdomain='testing')
@@ -1121,7 +1687,7 @@ class TestSignals(unittest.TestCase):
 
         flask.template_rendered.connect(record, app)
         try:
-            rv = app.test_client().get('/')
+            app.test_client().get('/')
             assert len(recorded) == 1
             template, context = recorded[0]
             assert template.name == 'simple_template.html'
@@ -1189,6 +1755,100 @@ class TestSignals(unittest.TestCase):
             flask.got_request_exception.disconnect(record, app)
 
 
+class ViewTestCase(unittest.TestCase):
+
+    def common_test(self, app):
+        c = app.test_client()
+
+        self.assertEqual(c.get('/').data, 'GET')
+        self.assertEqual(c.post('/').data, 'POST')
+        self.assertEqual(c.put('/').status_code, 405)
+        meths = parse_set_header(c.open('/', method='OPTIONS').headers['Allow'])
+        self.assertEqual(sorted(meths), ['GET', 'HEAD', 'OPTIONS', 'POST'])
+
+    def test_basic_view(self):
+        app = flask.Flask(__name__)
+
+        class Index(flask.views.View):
+            methods = ['GET', 'POST']
+            def dispatch_request(self):
+                return flask.request.method
+
+        app.add_url_rule('/', view_func=Index.as_view('index'))
+        self.common_test(app)
+
+    def test_method_based_view(self):
+        app = flask.Flask(__name__)
+
+        class Index(flask.views.MethodView):
+            def get(self):
+                return 'GET'
+            def post(self):
+                return 'POST'
+
+        app.add_url_rule('/', view_func=Index.as_view('index'))
+
+        self.common_test(app)
+
+    def test_view_patching(self):
+        app = flask.Flask(__name__)
+
+        class Index(flask.views.MethodView):
+            def get(self):
+                1/0
+            def post(self):
+                1/0
+
+        class Other(Index):
+            def get(self):
+                return 'GET'
+            def post(self):
+                return 'POST'
+
+        view = Index.as_view('index')
+        view.view_class = Other
+        app.add_url_rule('/', view_func=view)
+        self.common_test(app)
+
+    def test_view_inheritance(self):
+        app = flask.Flask(__name__)
+
+        class Index(flask.views.MethodView):
+            def get(self):
+                return 'GET'
+            def post(self):
+                return 'POST'
+
+        class BetterIndex(Index):
+            def delete(self):
+                return 'DELETE'
+
+        app.add_url_rule('/', view_func=BetterIndex.as_view('index'))
+        c = app.test_client()
+
+        meths = parse_set_header(c.open('/', method='OPTIONS').headers['Allow'])
+        self.assertEqual(sorted(meths), ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST'])
+
+
+class DeprecationsTestCase(unittest.TestCase):
+
+    def test_init_jinja_globals(self):
+        class MyFlask(flask.Flask):
+            def init_jinja_globals(self):
+                self.jinja_env.globals['foo'] = '42'
+
+        with catch_warnings() as log:
+            app = MyFlask(__name__)
+            @app.route('/')
+            def foo():
+                return app.jinja_env.globals['foo']
+
+            c = app.test_client()
+            assert c.get('/').data == '42'
+            assert len(log) == 1
+            assert 'init_jinja_globals' in str(log[0]['message'])
+
+
 def suite():
     from minitwit_tests import MiniTwitTestCase
     from flaskr_tests import FlaskrTestCase
@@ -1197,10 +1857,13 @@ def suite():
     suite.addTest(unittest.makeSuite(BasicFunctionalityTestCase))
     suite.addTest(unittest.makeSuite(TemplatingTestCase))
     suite.addTest(unittest.makeSuite(ModuleTestCase))
+    suite.addTest(unittest.makeSuite(BlueprintTestCase))
     suite.addTest(unittest.makeSuite(SendfileTestCase))
     suite.addTest(unittest.makeSuite(LoggingTestCase))
     suite.addTest(unittest.makeSuite(ConfigTestCase))
     suite.addTest(unittest.makeSuite(SubdomainTestCase))
+    suite.addTest(unittest.makeSuite(ViewTestCase))
+    suite.addTest(unittest.makeSuite(DeprecationsTestCase))
     if flask.json_available:
         suite.addTest(unittest.makeSuite(JSONTestCase))
     if flask.signals_available:

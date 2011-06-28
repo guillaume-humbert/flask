@@ -17,7 +17,7 @@ from .globals import _request_ctx_stack
 
 
 class Request(RequestBase):
-    """The request object used by default in flask.  Remembers the
+    """The request object used by default in Flask.  Remembers the
     matched endpoint and view arguments.
 
     It is what ends up as :class:`~flask.request`.  If you want to replace
@@ -42,6 +42,10 @@ class Request(RequestBase):
     #: something similar.
     routing_exception = None
 
+    # switched by the request context until 1.0 to opt in deprecated
+    # module functionality
+    _is_old_module = False
+
     @property
     def max_content_length(self):
         """Read-only view of the `MAX_CONTENT_LENGTH` config key."""
@@ -61,7 +65,20 @@ class Request(RequestBase):
 
     @property
     def module(self):
-        """The name of the current module"""
+        """The name of the current module if the request was dispatched
+        to an actual module.  This is deprecated functionality, use blueprints
+        instead.
+        """
+        from warnings import warn
+        warn(DeprecationWarning('modules were deprecated in favor of '
+                                'blueprints.  Use request.blueprint '
+                                'instead.'), stacklevel=2)
+        if self._is_old_module:
+            return self.blueprint
+
+    @property
+    def blueprint(self):
+        """The name of the current blueprint"""
         if self.url_rule and '.' in self.url_rule.endpoint:
             return self.url_rule.endpoint.rsplit('.', 1)[0]
 
@@ -73,12 +90,18 @@ class Request(RequestBase):
         if __debug__:
             _assert_have_json()
         if self.mimetype == 'application/json':
-            return json.loads(self.data)
+            request_charset = self.mimetype_params.get('charset')
+            if request_charset is not None:
+                j = json.loads(self.data, encoding=request_charset )
+            else:
+                j = json.loads(self.data)
+
+            return j
 
 
 class Response(ResponseBase):
-    """The response object that is used by default in flask.  Works like the
-    response object from Werkzeug but is set to have a HTML mimetype by
+    """The response object that is used by default in Flask.  Works like the
+    response object from Werkzeug but is set to have an HTML mimetype by
     default.  Quite often you don't have to create this object yourself because
     :meth:`~flask.Flask.make_response` will take care of that for you.
 

@@ -18,7 +18,6 @@ import urllib2
 import tempfile
 import subprocess
 import argparse
-from cStringIO import StringIO
 
 from flask import json
 
@@ -202,6 +201,7 @@ envlist=%(env)s
 [testenv]
 deps=
   %(deps)s
+  distribute
   py
 commands=bash flaskext-runtest.sh {envlogdir}/test.log
 downloadcache=%(cache)s
@@ -209,7 +209,7 @@ downloadcache=%(cache)s
 
 
 def create_tox_ini(checkout_path, interpreters, flask_dep):
-    tox_path = os.path.join(checkout_path, 'tox.ini')
+    tox_path = os.path.join(checkout_path, 'tox-flask-test.ini')
     if not os.path.exists(tox_path):
         with open(tox_path, 'w') as f:
             f.write(tox_template % {
@@ -217,6 +217,7 @@ def create_tox_ini(checkout_path, interpreters, flask_dep):
                 'cache':    tdir,
                 'deps':     flask_dep
             })
+    return tox_path
 
 
 def iter_extensions(only_approved=True):
@@ -244,12 +245,9 @@ def test_extension(name, interpreters, flask_dep):
     # if there is a tox.ini, remove it, it will cause troubles
     # for us.  Remove it if present, we are running tox ourselves
     # afterall.
-    toxini = os.path.join(checkout_path, 'tox.ini')
-    if os.path.isfile(toxini):
-        os.remove(toxini)
 
     create_tox_ini(checkout_path, interpreters, flask_dep)
-    rv = subprocess.call(['tox'], cwd=checkout_path)
+    rv = subprocess.call(['tox', '-c', 'tox-flask-test.ini'], cwd=checkout_path)
     return TestResult(name, checkout_path, rv, interpreters)
 
 

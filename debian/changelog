@@ -1,3 +1,9 @@
+flask (0.7-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Piotr Ożarowski <piotr@debian.org>  Tue, 28 Jun 2011 21:46:12 +0200
+
 flask (0.6.1-2) unstable; urgency=low
 
   * Provide flaskext namespace

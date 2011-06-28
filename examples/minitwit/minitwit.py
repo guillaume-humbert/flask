@@ -10,7 +10,7 @@
 """
 from __future__ import with_statement
 import time
-import sqlite3
+from sqlite3 import dbapi2 as sqlite3
 from hashlib import md5
 from datetime import datetime
 from contextlib import closing
@@ -82,11 +82,10 @@ def before_request():
                           [session['user_id']], one=True)
 
 
-@app.after_request
-def after_request(response):
+@app.teardown_request
+def teardown_request(exception):
     """Closes the database again at the end of the request."""
     g.db.close()
-    return response
 
 
 @app.route('/')

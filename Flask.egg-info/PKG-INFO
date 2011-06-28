@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: Flask
-Version: 0.6.1
+Version: 0.7
 Summary: A microframework based on Werkzeug, Jinja2 and good intentions
 Home-page: http://github.com/mitsuhiko/flask/
 Author: Armin Ronacher
@@ -18,24 +18,24 @@ Description:
         
         ::
         
-        from flask import Flask
-        app = Flask(__name__)
+            from flask import Flask
+            app = Flask(__name__)
         
-        @app.route("/")
-        def hello():
-        return "Hello World!"
+            @app.route("/")
+            def hello():
+                return "Hello World!"
         
-        if __name__ == "__main__":
-        app.run()
+            if __name__ == "__main__":
+                app.run()
         
         And Easy to Setup
         `````````````````
         
         ::
         
-        $ easy_install Flask
-        $ python hello.py
-        * Running on http://localhost:5000/
+            $ easy_install Flask
+            $ python hello.py
+             * Running on http://localhost:5000/
         
         Links
         `````
@@ -43,7 +43,7 @@ Description:
         * `website <http://flask.pocoo.org/>`_
         * `documentation <http://flask.pocoo.org/docs/>`_
         * `development version
-        <http://github.com/mitsuhiko/flask/zipball/master#egg=Flask-dev>`_
+          <http://github.com/mitsuhiko/flask/zipball/master#egg=Flask-dev>`_
         
         
 Platform: any

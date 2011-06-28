@@ -55,7 +55,7 @@ to the template::
     @contextmanager
     def captured_templates(app):
         recorded = []
-        def record(template, context):
+        def record(sender, template, context):
             recorded.append((template, context))
         template_rendered.connect(record, app)
         try:
@@ -81,15 +81,22 @@ context are appended to it.
 Additionally there is a convenient helper method
 (:meth:`~blinker.base.Signal.connected_to`).  that allows you to
 temporarily subscribe a function to a signal with is a context manager on
-its own which simplifies the example above::
+its own.  Because the return value of the context manager cannot be
+specified that way one has to pass the list in as argument::
 
     from flask import template_rendered
 
-    def captured_templates(app):
-        recorded = []
-        def record(template, context):
+    def captured_templates(app, recorded):
+        def record(sender, template, context):
             recorded.append((template, context))
         return template_rendered.connected_to(record, app)
+
+The example above would then look like this::
+
+    templates = []
+    with captured_templates(app, templates):
+        ...
+        template, context = templates[0]
 
 .. admonition:: Blinker API Changes
 
@@ -155,7 +162,7 @@ With Blinker 1.1 you can also easily subscribe to signals by using the new
     from flask import template_rendered
 
     @template_rendered.connect_via(app)
-    def when_template_rendered(template, context):
+    def when_template_rendered(sender, template, context):
         print 'Template %s is rendered with %s' % (template.name, context)
 
 Core Signals
@@ -179,8 +186,8 @@ The following signals exist in Flask:
                                 template.name or 'string template',
                                 context)
 
-        from flask import request_started
-        request_started.connect(log_template_renders, app)
+        from flask import template_rendered
+        template_rendered.connect(log_template_renders, app)
 
 .. data:: flask.request_started
    :noindex:
@@ -228,5 +235,21 @@ The following signals exist in Flask:
 
         from flask import got_request_exception
         got_request_exception.connect(log_exception, app)
+
+.. data:: flask.request_tearing_down
+   :noindex:
+
+   This signal is sent when the request is tearing down.  This is always
+   called, even if an exception is caused.  Currently functions listening
+   to this signal are called after the regular teardown handlers, but this
+   is not something you can rely on.
+
+   Example subscriber::
+
+        def close_db_connection(sender):
+            session.close()
+
+        from flask import request_tearing_down
+        request_tearing_down.connect(close_db_connection, app)
 
 .. _blinker: http://pypi.python.org/pypi/blinker

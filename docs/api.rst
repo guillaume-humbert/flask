@@ -18,10 +18,10 @@ Application Object
    :inherited-members:
 
 
-Module Objects
---------------
+Blueprint Objects
+-----------------
 
-.. autoclass:: Module
+.. autoclass:: Blueprint
    :members:
    :inherited-members:
 
@@ -40,24 +40,24 @@ Incoming Request Data
 
    This is a proxy.  See :ref:`notes-on-proxies` for more information.
 
-   The request object is an instance of a :class:`~werkzeug.Request`
+   The request object is an instance of a :class:`~werkzeug.wrappers.Request`
    subclass and provides all of the attributes Werkzeug defines.  This
    just shows a quick overview of the most important ones.
 
    .. attribute:: form
 
-      A :class:`~werkzeug.MultiDict` with the parsed form data from `POST`
+      A :class:`~werkzeug.datastructures.MultiDict` with the parsed form data from `POST`
       or `PUT` requests.  Please keep in mind that file uploads will not
       end up here,  but instead in the :attr:`files` attribute.
 
    .. attribute:: args
 
-      A :class:`~werkzeug.MultiDict` with the parsed contents of the query
+      A :class:`~werkzeug.datastructures.MultiDict` with the parsed contents of the query
       string.  (The part in the URL after the question mark).
 
    .. attribute:: values
 
-      A :class:`~werkzeug.CombinedMultiDict` with the contents of both
+      A :class:`~werkzeug.datastructures.CombinedMultiDict` with the contents of both
       :attr:`form` and :attr:`args`.
 
    .. attribute:: cookies
@@ -79,11 +79,11 @@ Incoming Request Data
 
    .. attribute:: files
 
-      A :class:`~werkzeug.MultiDict` with files uploaded as part of a
+      A :class:`~werkzeug.datastructures.MultiDict` with files uploaded as part of a
       `POST` or `PUT` request.  Each file is stored as
-      :class:`~werkzeug.FileStorage` object.  It basically behaves like a
+      :class:`~werkzeug.datastructures.FileStorage` object.  It basically behaves like a
       standard file object you know from Python, with the difference that
-      it also has a :meth:`~werkzeug.FileStorage.save` function that can
+      it also has a :meth:`~werkzeug.datastructures.FileStorage.save` function that can
       store the file on the filesystem.
 
    .. attribute:: environ
@@ -156,8 +156,8 @@ If you have the :attr:`Flask.secret_key` set you can use sessions in Flask
 applications.  A session basically makes it possible to remember
 information from one request to another.  The way Flask does this is by
 using a signed cookie.  So the user can look at the session contents, but
-not modify it unless he knows the secret key, so make sure to set that to
-something complex and unguessable.
+not modify it unless they know the secret key, so make sure to set that
+to something complex and unguessable.
 
 To access the current session you can use the :class:`session` object:
 
@@ -187,12 +187,12 @@ To access the current session you can use the :class:`session` object:
           # so mark it as modified yourself
           session.modified = True
 
-    .. attribute:: permanent
+   .. attribute:: permanent
 
-       If set to `True` the session life for
-       :attr:`~flask.Flask.permanent_session_lifetime` seconds.  The
-       default is 31 days.  If set to `False` (which is the default) the
-       session will be deleted when the user closes the browser.
+      If set to `True` the session lives for
+      :attr:`~flask.Flask.permanent_session_lifetime` seconds.  The
+      default is 31 days.  If set to `False` (which is the default) the
+      session will be deleted when the user closes the browser.
 
 
 Application Globals
@@ -224,11 +224,13 @@ Useful Functions and Classes
 
    This is a proxy.  See :ref:`notes-on-proxies` for more information.
 
+.. autofunction:: has_request_context
+
 .. autofunction:: url_for
 
 .. function:: abort(code)
 
-   Raises an :exc:`~werkzeug.exception.HTTPException` for the given
+   Raises an :exc:`~werkzeug.exceptions.HTTPException` for the given
    status code.  For example to abort request handling with a page not
    found exception, you would call ``abort(404)``.
 
@@ -241,6 +243,8 @@ Useful Functions and Classes
 .. autofunction:: send_file
 
 .. autofunction:: send_from_directory
+
+.. autofunction:: safe_join
 
 .. autofunction:: escape
 
@@ -306,9 +310,12 @@ Configuration
 Useful Internals
 ----------------
 
+.. autoclass:: flask.ctx.RequestContext
+   :members:
+
 .. data:: _request_ctx_stack
 
-   The internal :class:`~werkzeug.LocalStack` that is used to implement
+   The internal :class:`~werkzeug.local.LocalStack` that is used to implement
    all the context local objects used in Flask.  This is a documented
    instance and can be used by extensions and application code but the
    use is discouraged in general.
@@ -343,22 +350,8 @@ Useful Internals
           if ctx is not None:
               return ctx.session
 
-   .. versionchanged:: 0.4
-
-   The request context is automatically popped at the end of the request
-   for you.  In debug mode the request context is kept around if
-   exceptions happen so that interactive debuggers have a chance to
-   introspect the data.  With 0.4 this can also be forced for requests
-   that did not fail and outside of `DEBUG` mode.  By setting
-   ``'flask._preserve_context'`` to `True` on the WSGI environment the
-   context will not pop itself at the end of the request.  This is used by
-   the :meth:`~flask.Flask.test_client` for example to implement the
-   deferred cleanup functionality.
-
-   You might find this helpful for unittests where you need the
-   information from the context local around for a little longer.  Make
-   sure to properly :meth:`~werkzeug.LocalStack.pop` the stack yourself in
-   that situation, otherwise your unittests will leak memory.
+.. autoclass:: flask.blueprints.BlueprintSetupState
+   :members:
 
 Signals
 -------
@@ -397,6 +390,12 @@ Signals
    in debug mode, where no exception handling happens.  The exception
    itself is passed to the subscriber as `exception`.
 
+.. data:: request_tearing_down
+
+   This signal is sent when the application is tearing down the request.
+   This is always called, even if an error happened.  No arguments are
+   provided.
+
 .. currentmodule:: None
 
 .. class:: flask.signals.Namespace
@@ -415,27 +414,15 @@ Signals
 
 .. _blinker: http://pypi.python.org/pypi/blinker
 
-.. _notes-on-proxies:
+Class Based Views
+-----------------
 
-Notes On Proxies
-----------------
+.. versionadded:: 0.7
 
-Some of the objects provided by Flask are proxies to other objects.  The
-reason behind this is, that these proxies are shared between threads and
-they have to dispatch to the actual object bound to a thread behind the
-scenes as necessary.
+.. currentmodule:: None
 
-Most of the time you don't have to care about that, but there are some
-exceptions where it is good to know that this object is an actual proxy:
+.. autoclass:: flask.views.View
+   :members:
 
--   The proxy objects do not fake their inherited types, so if you want to
-    perform actual instance checks, you have to do that on the instance
-    that
--   if the object reference is important (so for example for sending
-    :ref:`signals`)
-
-If you need to get access to the underlying object that is proxied, you
-can use the :meth:`~werkzeug.LocalProxy._get_current_object` method::
-
-    app = current_app._get_current_object()
-    my_signal.send(app)
+.. autoclass:: flask.views.MethodView
+   :members:

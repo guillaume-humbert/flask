@@ -11,8 +11,9 @@
 
 from __future__ import with_statement
 
+import imp
 import os
-import sys
+import errno
 
 from werkzeug import import_string
 
@@ -82,13 +83,13 @@ class Config(dict):
 
     def from_envvar(self, variable_name, silent=False):
         """Loads a configuration from an environment variable pointing to
-        a configuration file.  This basically is just a shortcut with nicer
+        a configuration file.  This is basically just a shortcut with nicer
         error messages for this line of code::
 
             app.config.from_pyfile(os.environ['YOURAPPLICATION_SETTINGS'])
 
         :param variable_name: name of the environment variable
-        :param silent: set to `True` if you want silent failing for missing
+        :param silent: set to `True` if you want silent failure for missing
                        files.
         :return: bool. `True` if able to load config, `False` otherwise.
         """
@@ -104,7 +105,7 @@ class Config(dict):
         self.from_pyfile(rv)
         return True
 
-    def from_pyfile(self, filename):
+    def from_pyfile(self, filename, silent=False):
         """Updates the values in the config from a Python file.  This function
         behaves as if the file was imported as module with the
         :meth:`from_object` function.
@@ -112,12 +113,24 @@ class Config(dict):
         :param filename: the filename of the config.  This can either be an
                          absolute filename or a filename relative to the
                          root path.
+        :param silent: set to `True` if you want silent failure for missing
+                       files.
+
+        .. versionadded:: 0.7
+           `silent` parameter.
         """
         filename = os.path.join(self.root_path, filename)
-        d = type(sys)('config')
+        d = imp.new_module('config')
         d.__file__ = filename
-        execfile(filename, d.__dict__)
+        try:
+            execfile(filename, d.__dict__)
+        except IOError, e:
+            if silent and e.errno in (errno.ENOENT, errno.EISDIR):
+                return False
+            e.strerror = 'Unable to load configuration file (%s)' % e.strerror
+            raise
         self.from_object(d)
+        return True
 
     def from_object(self, obj):
         """Updates the values from the given object.  An object can be of one
@@ -128,8 +141,8 @@ class Config(dict):
 
         Objects are usually either modules or classes.
 
-        Just the uppercase variables in that object are stored in the config
-        after lowercasing.  Example usage::
+        Just the uppercase variables in that object are stored in the config.
+        Example usage::
 
             app.config.from_object('yourapplication.default_config')
             from yourapplication import default_config
