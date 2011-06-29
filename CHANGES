@@ -3,6 +3,14 @@ Flask Changelog
 
 Here you can see the full list of changes between each Flask release.
 
+Version 0.7.1
+-------------
+
+Bugfix release, released on June 29th 2011
+
+- Added missing future import that broke 2.5 compatibility.
+- Fixed an infinite redirect issue with blueprints.
+
 Version 0.7
 -----------
 
@@ -56,7 +64,7 @@ Released on June 28th 2011, codename Grappa
   might occur during request processing (for instance database connection
   errors, timeouts from remote resources etc.).
 - Blueprints can provide blueprint specific error handlers.
-- Implemented generic pluggable views (class based views).
+- Implemented generic :ref:`views` (class based views).
 
 Version 0.6.1
 -------------
