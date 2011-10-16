@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Piotr Ożarowski <piotr@debian.org>
 Uploaders: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
 Build-Depends: debhelper (>= 7), python-all (>= 2.6.6-6), python-setuptools (>= 0.6b3)
-Build-Depends-Indep: python-jinja2, python-werkzeug
+Build-Depends-Indep: python-jinja2, python-werkzeug (>= 0.8)
 Standards-Version: 3.9.2
 Vcs-Svn: svn://svn.debian.org/python-modules/packages/flask/trunk
 Vcs-Browser: http://svn.debian.org/viewsvn/python-modules/packages/flask/trunk/
