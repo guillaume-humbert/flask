@@ -18,7 +18,7 @@ A minimal Flask application looks something like this::
 
     @app.route('/')
     def hello_world():
-        return "Hello World!"
+        return 'Hello World!'
 
     if __name__ == '__main__':
         app.run()
@@ -588,12 +588,44 @@ For some better examples, checkout the :ref:`uploading-files` pattern.
 Cookies
 ```````
 
-To access cookies you can use the :attr:`~flask.request.cookies`
-attribute.  Again this is a dictionary with all the cookies the client
-transmits.  If you want to use sessions, do not use the cookies directly
-but instead use the :ref:`sessions` in Flask that add some security on top
-of cookies for you.
+To access cookies you can use the :attr:`~flask.Request.cookies`
+attribute.  To set cookies you can use the
+:attr:`~flask.Response.set_cookie` method of response objects.  The
+:attr:`~flask.Request.cookies` attribute of request objects is a
+dictionary with all the cookies the client transmits.  If you want to use
+sessions, do not use the cookies directly but instead use the
+:ref:`sessions` in Flask that add some security on top of cookies for you.
 
+Reading cookies::
+
+    from flask import request
+
+    @app.route('/')
+    def index():
+        username = request.cookies.get('username')
+        # use cookies.get(key) instead of cookies[key] to not get a
+        # KeyError if the cookie is missing.
+
+Storing cookies::
+
+    from flask import make_response
+
+    @app.route('/')
+    def index():
+        resp = make_response(render_template(...))
+        resp.set_cookie('username', 'the username')
+        return resp
+
+Note that cookies are set on response objects.  Since you normally you
+just return strings from the view functions Flask will convert them into
+response objects for you.  If you explicitly want to do that you can use
+the :meth:`~flask.make_response` function and then modify it.
+
+Sometimes you might want to set a cookie at a point where the response
+object does not exist yet.  This is possible by utilizing the
+:ref:`deferred-callbacks` pattern.
+
+For this also see :ref:`about-responses`.
 
 Redirects and Errors
 --------------------
@@ -630,6 +662,49 @@ you want to customize the error page, you can use the
 Note the ``404`` after the :func:`~flask.render_template` call.  This
 tells Flask that the status code of that page should be 404 which means
 not found.  By default 200 is assumed which translates to: all went well.
+
+.. _about-responses:
+
+About Responses
+---------------
+
+The return value from a view function is automatically converted into a
+response object for you.  If the return value is a string it's converted
+into a response object with the string as response body, an ``200 OK``
+error code and a ``text/html`` mimetype.  The logic that Flask applies to
+converting return values into response objects is as follows:
+
+1.  If a response object of the correct type is returned it's directly
+    returned from the view.
+2.  If it's a string, a response object is created with that data and the
+    default parameters.
+3.  If a tuple is returned the response object is created by passing the
+    tuple as arguments to the response object's constructor.
+4.  If neither of that works, Flask will assume the return value is a
+    valid WSGI application and converts that into a response object.
+
+If you want to get hold of the resulting response object inside the view
+you can use the :func:`~flask.make_response` function.
+
+Imagine you have a view like this:
+
+.. sourcecode:: python
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return render_template('error.html'), 404
+
+You just need to wrap the return expression with
+:func:`~flask.make_response` and get the result object to modify it, then
+return it:
+
+.. sourcecode:: python
+
+    @app.errorhandler(404)
+    def not_found(error):
+        resp = make_response(render_template('error.html'), 404)
+        resp.headers['X-Something'] = 'A value'
+        return resp
 
 .. _sessions:
 

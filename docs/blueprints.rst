@@ -41,7 +41,8 @@ will have separate configs and will be managed at the WSGI layer.
 Blueprints instead provide separation at the Flask level, share
 application config, and can change an application object as necessary with
 being registered. The downside is that you cannot unregister a blueprint
-once application without having to destroy the whole application object.
+once an application was created without having to destroy the whole
+application object.
 
 The Concept of Blueprints
 -------------------------
@@ -124,16 +125,16 @@ Blueprint Resource Folder
 `````````````````````````
 
 Like for regular applications, blueprints are considered to be contained
-in a folder.  While multiple blueprints can origin from the same folder,
+in a folder.  While multiple blueprints can originate from the same folder,
 it does not have to be the case and it's usually not recommended.
 
-The folder is infered from the second argument to :class:`Blueprint` which
-is ususally `__name__`.  This argument specifies what logical Python
+The folder is inferred from the second argument to :class:`Blueprint` which
+is usually `__name__`.  This argument specifies what logical Python
 module or package corresponds to the blueprint.  If it points to an actual
 Python package that package (which is a folder on the filesystem) is the
 resource folder.  If it's a module, the package the module is contained in
 will be the resource folder.  You can access the
-:attr:`Blueprint.root_path` property to see what's the resource folder::
+:attr:`Blueprint.root_path` property to see what the resource folder is::
 
     >>> simple_page.root_path
     '/Users/username/TestProject/yourapplication'

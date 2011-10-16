@@ -1,3 +1,10 @@
+flask (0.8-1) unstable; urgency=low
+
+  * New upstream release
+  * Bump minimum required python-werkzeug version to 0.8
+
+ -- Piotr Ożarowski <piotr@debian.org>  Sun, 16 Oct 2011 19:37:43 +0200
+
 flask (0.7.2-1) unstable; urgency=low
 
   * New upstream release

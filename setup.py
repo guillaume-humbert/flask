@@ -49,7 +49,7 @@ class run_audit(Command):
     user_options = []
 
     def initialize_options(self):
-        all = None
+        pass
 
     def finalize_options(self):
         pass
@@ -62,31 +62,22 @@ class run_audit(Command):
             print "Audit requires PyFlakes installed in your system."""
             sys.exit(-1)
 
-        dirs = ['flask', 'tests']
-        # Add example directories
-        for dir in ['flaskr', 'jqueryexample', 'minitwit']:
-            dirs.append(os.path.join('examples', dir))
-        # TODO: Add test subdirectories
         warns = 0
+        # Define top-level directories
+        dirs = ('flask', 'examples', 'scripts')
         for dir in dirs:
-            for filename in os.listdir(dir):
-                if filename.endswith('.py') and filename != '__init__.py':
-                    warns += flakes.checkPath(os.path.join(dir, filename))
+            for root, _, files in os.walk(dir):
+                for file in files:
+                    if file != '__init__.py' and file.endswith('.py') :
+                        warns += flakes.checkPath(os.path.join(root, file))
         if warns > 0:
-            print ("Audit finished with total %d warnings." % warns)
+            print "Audit finished with total %d warnings." % warns
         else:
-            print ("No problems found in sourcecode.")
-
-def run_tests():
-    import os, sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), 'tests'))
-    from flask_tests import suite
-    return suite()
-
+            print "No problems found in sourcecode."
 
 setup(
     name='Flask',
-    version='0.7.2',
+    version='0.8',
     url='http://github.com/mitsuhiko/flask/',
     license='BSD',
     author='Armin Ronacher',
@@ -94,7 +85,8 @@ setup(
     description='A microframework based on Werkzeug, Jinja2 '
                 'and good intentions',
     long_description=__doc__,
-    packages=['flask'],
+    packages=['flask', 'flask.ext', 'flask.testsuite'],
+    include_package_data=True,
     zip_safe=False,
     platforms='any',
     install_requires=[
@@ -112,5 +104,5 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     cmdclass={'audit': run_audit},
-    test_suite='__main__.run_tests'
+    test_suite='flask.testsuite.suite'
 )

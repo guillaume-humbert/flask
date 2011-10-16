@@ -42,7 +42,7 @@ are combined by the dispatcher middleware into a larger one that
 dispatched based on prefix.
 
 For example you could have your main application run on `/` and your
-backend interface on `/admin`::
+backend interface on `/backend`::
 
     from werkzeug.wsgi import DispatcherMiddleware
     from frontend_app import application as frontend
@@ -167,4 +167,4 @@ falls back to another application if the creator function returns `None`::
         if user is not None:
             return create_app(user)
 
-    application = PathDispatcher('example.com', default_app, make_app)
+    application = PathDispatcher(default_app, make_app)

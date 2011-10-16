@@ -19,6 +19,28 @@ installation, make sure to pass it the ``-U`` parameter::
 
     $ easy_install -U Flask
 
+Version 0.8
+-----------
+
+Flask introduced a new session interface system.  We also noticed that
+there was a naming collision between `flask.session` the module that
+implements sessions and :data:`flask.session` which is the global session
+object.  With that introduction we moved the implementation details for
+the session system into a new module called :mod:`flask.sessions`.  If you
+used the previously undocumented session support we urge you to upgrade.
+
+If invalid JSON data was submitted Flask will now raise a
+:exc:`~werkzeug.exceptions.BadRequest` exception instead of letting the
+default :exc:`ValueError` bubble up.  This has the advantage that you no
+longer have to handle that error to avoid an internal server error showing
+up for the user.  If you were catching this down explicitly in the past
+as `ValueError` you will need to change this.
+
+Due to a bug in the test client Flask 0.7 did not trigger teardown
+handlers when the test client was used in a with statement.  This was
+since fixed but might require some changes in your testsuites if you
+relied on this behavior.
+
 Version 0.7
 -----------
 
@@ -125,7 +147,8 @@ You are now encouraged to use this instead::
 
     @app.teardown_request
     def after_request(exception):
-        g.db.close()
+        if hasattr(g, 'db'):
+            g.db.close()
 
 On the upside this change greatly improves the internal code flow and
 makes it easier to customize the dispatching and error handling.  This
@@ -189,14 +212,17 @@ to upgrade.  What changed?
     some unnecessary leading dots in your code if you're not using
     modules.
 -   Blueprints do not automatically provide static folders.  They will
-    still export templates from a folder called `templates` next to their
-    location however.  If you want to continue serving static files you
-    need to tell the constructor explicitly the path to the static folder
-    (which can be relative to the blueprint's module path).
--   Rendering templates was simplified.  Now the general syntax is
-    ``blueprint-shortname:template-name`` for rendering templates instead
-    of ``blueprint-shortname/template-name`` which was confusing and often
-    clashed with templates from the global template loader.
+    also no longer automatically export templates from a folder called
+    `templates` next to their location however but it can be enabled from
+    the constructor.  Same with static files: if you want to continue
+    serving static files you need to tell the constructor explicitly the
+    path to the static folder (which can be relative to the blueprint's
+    module path).
+-   Rendering templates was simplified.  Now the blueprints can provide
+    template folders which are added to a general template searchpath.
+    This means that you need to add another subfolder with the blueprint's
+    name into that folder if you want ``blueprintname/template.html`` as
+    the template name.
 
 If you continue to use the `Module` object which is deprecated, Flask will
 restore the previous behavior as good as possible.  However we strongly
