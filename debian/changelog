@@ -1,9 +1,12 @@
-flask (0.9-1) UNRELEASED; urgency=low
+flask (0.9-1) experimental; urgency=low
 
   * New upstream release
+    - upload to experimental due to Wheezy freeze
+  * remove flask/testsuite from binary package (it's doesn't work outside
+    build directory)
   * Standards-Version bumped to 3.9.3 (no changes needed)
 
- -- Piotr Ożarowski <piotr@debian.org>  Tue, 03 Jul 2012 22:18:18 +0200
+ -- Piotr Ożarowski <piotr@debian.org>  Fri, 03 Aug 2012 19:29:35 +0200
 
 flask (0.8-1) unstable; urgency=low
 
