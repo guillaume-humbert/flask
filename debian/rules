@@ -5,11 +5,19 @@ export PYTHONPATH=$(CURDIR)
 %:
 	dh $@ --buildsystem python_distutils --with python2
 
+override_dh_auto_install:
+	dh_auto_install
+	set -e; for i in `pyversions -rv`; do\
+		mkdir -p debian/python-flask/usr/lib/python$$i/dist-packages/flaskext;\
+		touch debian/python-flask/usr/lib/python$$i/dist-packages/flaskext/__init__.py;\
+	done
+
 build:
 	dh build
-ifeq (,$(findstring nocheck,$(DEB_BUILD_OPTIONS)))
-	make test
-endif
+
+#dh_auto_build is invoking tests only (see Makefile)
+override_dh_auto_build:
+override_dh_auto_test:
 
 clean:
 	dh clean

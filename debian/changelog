@@ -1,3 +1,13 @@
+flask (0.8-1~bpo60+1) squeeze-backports; urgency=low
+
+  * Rebuild for squeeze-backports.
+  * create flaskext namespace directly in debian/rules rather via .pyinstall
+    file and lower python-all minimum required build version
+  * disable build time tests and lower minimum required python-werkzeug's
+    build version (runtime dependency on >= 0.8 is not changed)
+
+ -- Piotr Ożarowski <piotr@debian.org>  Fri, 18 Jan 2013 23:37:50 +0100
+
 flask (0.8-1) unstable; urgency=low
 
   * New upstream release
