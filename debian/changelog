@@ -1,3 +1,9 @@
+flask (0.8-1~bpo60+2) squeeze-backports; urgency=low
+
+  *  Bump minimum required Python version to 2.6 (closes: #699526)
+
+ -- Piotr Ożarowski <piotr@debian.org>  Sun, 03 Feb 2013 21:36:13 +0100
+
 flask (0.8-1~bpo60+1) squeeze-backports; urgency=low
 
   * Rebuild for squeeze-backports.
