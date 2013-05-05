@@ -1,8 +1,15 @@
-flask (0.9-2) UNRELEASED; urgency=low
+flask (0.9-2) unstable; urgency=low
 
+  [ Jakub Wilk ]
   * Use canonical URIs for Vcs-* fields.
 
- -- Jakub Wilk <jwilk@debian.org>  Sun, 05 May 2013 16:00:51 +0200
+  [ Piotr Ożarowski ]
+  * Add python-flask-doc binary package (closes: #703802)
+  * debian/compat bumped to 9
+  * Standards-Version bumped to 3.9.4 (no changes needed)
+  * upload to unstable
+
+ -- Piotr Ożarowski <piotr@debian.org>  Sun, 05 May 2013 20:25:15 +0200
 
 flask (0.9-1) experimental; urgency=low
 

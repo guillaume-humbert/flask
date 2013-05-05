@@ -3,13 +3,17 @@
 export PYTHONPATH=$(CURDIR)
 
 %:
-	dh $@ --buildsystem python_distutils --with python2
+	dh $@ --buildsystem python_distutils --with python2,sphinxdoc
 
 build:
 	dh build
 ifeq (,$(findstring nocheck,$(DEB_BUILD_OPTIONS)))
 	make test
 endif
+
+override_dh_installdocs:
+	dh_installdocs
+	PYTHONPATH=. sphinx-build -N -q -E -b html docs/ debian/python-flask-doc/usr/share/doc/python-flask/html/
 
 clean:
 	dh clean
