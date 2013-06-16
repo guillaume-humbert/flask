@@ -1,10 +1,10 @@
-flask (0.10-1) UNRELEASED; urgency=low
+flask (0.10.1-1) unstable; urgency=low
 
   * New upstream release
   * Add python-itsdangerous to Build-Depends and let dh_python2
     add it to Depends
 
- -- Piotr Ożarowski <piotr@debian.org>  Thu, 13 Jun 2013 23:07:02 +0200
+ -- Piotr Ożarowski <piotr@debian.org>  Sun, 16 Jun 2013 15:08:42 +0200
 
 flask (0.9-2) unstable; urgency=low
 
