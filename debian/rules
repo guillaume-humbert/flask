@@ -1,25 +1,18 @@
 #!/usr/bin/make -f
 	
-export PYTHONPATH=$(CURDIR)
+export PYBUILD_DESTDIR_python2=debian/python-flask/
 
 %:
-	dh $@ --buildsystem python_distutils --with python2
+	dh $@ --with python2,sphinxdoc --buildsystem pybuild
 
-override_dh_auto_install:
-	dh_auto_install
-	set -e; for i in `pyversions -rv`; do\
-		mkdir -p debian/python-flask/usr/lib/python$$i/dist-packages/flaskext;\
-		touch debian/python-flask/usr/lib/python$$i/dist-packages/flaskext/__init__.py;\
-	done
-
-build:
-	dh build
-
-#dh_auto_build is invoking tests only (see Makefile)
-override_dh_auto_build:
 override_dh_auto_test:
+	http_proxy='' dh_auto_test
 
-clean:
-	dh clean
+override_dh_installdocs:
+	dh_installdocs
+	PYTHONPATH=. sphinx-build -N -q -E -b html docs/ debian/python-flask-doc/usr/share/doc/python-flask-doc/html/
+
+override_dh_auto_clean:
+	dh_auto_clean
 	rm -rf Flask.egg-info/ build
 	find . \( -name '*.py[co]' -or -name '\._*' -or -name '\.DS_Store' \) -delete

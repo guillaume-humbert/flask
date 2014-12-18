@@ -8,7 +8,7 @@ intentions. And before you ask: It's BSD licensed!
 Flask is Fun
 ````````````
 
-::
+.. code:: python
 
     from flask import Flask
     app = Flask(__name__)
@@ -23,9 +23,9 @@ Flask is Fun
 And Easy to Setup
 `````````````````
 
-::
+.. code:: bash
 
-    $ easy_install Flask
+    $ pip install Flask
     $ python hello.py
      * Running on http://localhost:5000/
 
@@ -38,6 +38,7 @@ Links
   <http://github.com/mitsuhiko/flask/zipball/master#egg=Flask-dev>`_
 
 """
+from __future__ import print_function
 from setuptools import Command, setup
 
 class run_audit(Command):
@@ -59,7 +60,7 @@ class run_audit(Command):
         try:
             import pyflakes.scripts.pyflakes as flakes
         except ImportError:
-            print "Audit requires PyFlakes installed in your system."""
+            print("Audit requires PyFlakes installed in your system.")
             sys.exit(-1)
 
         warns = 0
@@ -71,13 +72,13 @@ class run_audit(Command):
                     if file != '__init__.py' and file.endswith('.py') :
                         warns += flakes.checkPath(os.path.join(root, file))
         if warns > 0:
-            print "Audit finished with total %d warnings." % warns
+            print("Audit finished with total %d warnings." % warns)
         else:
-            print "No problems found in sourcecode."
+            print("No problems found in sourcecode.")
 
 setup(
     name='Flask',
-    version='0.8',
+    version='0.10.1',
     url='http://github.com/mitsuhiko/flask/',
     license='BSD',
     author='Armin Ronacher',
@@ -90,8 +91,9 @@ setup(
     zip_safe=False,
     platforms='any',
     install_requires=[
-        'Werkzeug>=0.6.1',
-        'Jinja2>=2.4'
+        'Werkzeug>=0.7',
+        'Jinja2>=2.4',
+        'itsdangerous>=0.21'
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -100,6 +102,7 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],

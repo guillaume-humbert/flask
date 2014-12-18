@@ -9,6 +9,7 @@ instructions for web development with Flask.
    :maxdepth: 2
 
    foreword
+   advanced_foreword
    installation
    quickstart
    tutorial/index
@@ -18,6 +19,7 @@ instructions for web development with Flask.
    config
    signals
    views
+   appcontext
    reqcontext
    blueprints
    extensions
@@ -51,6 +53,7 @@ Design notes, legal information and changelog are here for the interested.
    unicode
    extensiondev
    styleguide
+   python3
    upgrading
    changelog
    license

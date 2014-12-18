@@ -144,6 +144,10 @@ Response Objects
 
       A :class:`Headers` object representing the response headers.
 
+   .. attribute:: status
+
+      A string with a response status.
+
    .. attribute:: status_code
 
       The response status as integer.
@@ -211,11 +215,26 @@ implementation that Flask is using.
 .. autoclass:: SecureCookieSessionInterface
    :members:
 
+.. autoclass:: SecureCookieSession
+   :members:
+
 .. autoclass:: NullSession
    :members:
 
 .. autoclass:: SessionMixin
    :members:
+
+.. autodata:: session_json_serializer
+
+   This object provides dumping and loading methods similar to simplejson
+   but it also tags certain builtin Python objects that commonly appear in
+   sessions.  Currently the following extended values are supported in
+   the JSON it dumps:
+
+   -    :class:`~markupsafe.Markup` objects
+   -    :class:`~uuid.UUID` objects
+   -    :class:`~datetime.datetime` objects
+   -   :class:`tuple`\s
 
 .. admonition:: Notice
 
@@ -251,6 +270,22 @@ thing, like it does for :class:`request` and :class:`session`.
    Just store on this whatever you want.  For example a database
    connection or the user that is currently logged in.
 
+   Starting with Flask 0.10 this is stored on the application context and
+   no longer on the request context which means it becomes available if
+   only the application context is bound and not yet a request.  This
+   is especially useful when combined with the :ref:`faking-resources`
+   pattern for testing.
+
+   Additionally as of 0.10 you can use the :meth:`get` method to
+   get an attribute or `None` (or the second argument) if it's not set.
+   These two usages are now equivalent::
+
+        user = getattr(flask.g, 'user', None)
+        user = flask.g.get('user', None)
+
+   It's now also possible to use the ``in`` operator on it to see if an
+   attribute is defined and it yields all keys on iteration.
+
    This is a proxy.  See :ref:`notes-on-proxies` for more information.
 
 
@@ -261,11 +296,17 @@ Useful Functions and Classes
 
    Points to the application handling the request.  This is useful for
    extensions that want to support multiple applications running side
-   by side.
+   by side.  This is powered by the application context and not by the
+   request context, so you can change the value of this proxy by
+   using the :meth:`~flask.Flask.app_context` method.
 
    This is a proxy.  See :ref:`notes-on-proxies` for more information.
 
 .. autofunction:: has_request_context
+
+.. autofunction:: copy_current_request_context
+
+.. autofunction:: has_app_context
 
 .. autofunction:: url_for
 
@@ -280,6 +321,8 @@ Useful Functions and Classes
 .. autofunction:: redirect
 
 .. autofunction:: make_response
+
+.. autofunction:: after_this_request
 
 .. autofunction:: send_file
 
@@ -299,42 +342,69 @@ Message Flashing
 
 .. autofunction:: get_flashed_messages
 
-Returning JSON
---------------
+JSON Support
+------------
+
+.. module:: flask.json
+
+Flask uses ``simplejson`` for the JSON implementation.  Since simplejson
+is provided both by the standard library as well as extension Flask will
+try simplejson first and then fall back to the stdlib json module.  On top
+of that it will delegate access to the current application's JSOn encoders
+and decoders for easier customization.
+
+So for starters instead of doing::
+
+    try:
+        import simplejson as json
+    except ImportError:
+        import json
+
+You can instead just do this::
+
+    from flask import json
+
+For usage examples, read the :mod:`json` documentation in the standard
+lirbary.  The following extensions are by default applied to the stdlib's
+JSON module:
+
+1.  ``datetime`` objects are serialized as :rfc:`822` strings.
+2.  Any object with an ``__html__`` method (like :class:`~flask.Markup`)
+    will ahve that method called and then the return value is serialized
+    as string.
+
+The :func:`~htmlsafe_dumps` function of this json module is also available
+as filter called ``|tojson`` in Jinja2.  Note that inside `script`
+tags no escaping must take place, so make sure to disable escaping
+with ``|safe`` if you intend to use it inside `script` tags unless
+you are using Flask 0.10 which implies that:
+
+.. sourcecode:: html+jinja
+
+    <script type=text/javascript>
+        doSomethingWith({{ user.username|tojson|safe }});
+    </script>
 
 .. autofunction:: jsonify
 
-.. data:: json
+.. autofunction:: dumps
 
-    If JSON support is picked up, this will be the module that Flask is
-    using to parse and serialize JSON.  So instead of doing this yourself::
+.. autofunction:: dump
 
-        try:
-            import simplejson as json
-        except ImportError:
-            import json
+.. autofunction:: loads
 
-    You can instead just do this::
+.. autofunction:: load
 
-        from flask import json
+.. autoclass:: JSONEncoder
+   :members:
 
-    For usage examples, read the :mod:`json` documentation.
-
-    The :func:`~json.dumps` function of this json module is also available
-    as filter called ``|tojson`` in Jinja2.  Note that inside `script`
-    tags no escaping must take place, so make sure to disable escaping
-    with ``|safe`` if you intend to use it inside `script` tags:
-
-    .. sourcecode:: html+jinja
-
-        <script type=text/javascript>
-            doSomethingWith({{ user.username|tojson|safe }});
-        </script>
-
-    Note that the ``|tojson`` filter escapes forward slashes properly.
+.. autoclass:: JSONDecoder
+   :members:
 
 Template Rendering
 ------------------
+
+.. currentmodule:: flask
 
 .. autofunction:: render_template
 
@@ -364,6 +434,11 @@ Extensions
         from flask.ext import foo
 
    .. versionadded:: 0.8
+
+Stream Helpers
+--------------
+
+.. autofunction:: stream_with_context
 
 Useful Internals
 ----------------
@@ -408,6 +483,16 @@ Useful Internals
           if ctx is not None:
               return ctx.session
 
+.. autoclass:: flask.ctx.AppContext
+   :members:
+
+.. data:: _app_ctx_stack
+
+   Works similar to the request context but only binds the application.
+   This is mainly there for extensions to store data.
+
+   .. versionadded:: 0.9
+
 .. autoclass:: flask.blueprints.BlueprintSetupState
    :members:
 
@@ -451,8 +536,41 @@ Signals
 .. data:: request_tearing_down
 
    This signal is sent when the application is tearing down the request.
-   This is always called, even if an error happened.  No arguments are
-   provided.
+   This is always called, even if an error happened.  An `exc` keyword
+   argument is passed with the exception that caused the teardown.
+
+   .. versionchanged:: 0.9
+      The `exc` parameter was added.
+
+.. data:: appcontext_tearing_down
+
+   This signal is sent when the application is tearing down the
+   application context.  This is always called, even if an error happened.
+   An `exc` keyword argument is passed with the exception that caused the
+   teardown.  The sender is the application.
+
+.. data:: appcontext_pushed
+
+   This signal is sent when an application context is pushed.  The sender
+   is the application.
+
+   .. versionadded:: 0.10
+
+.. data:: appcontext_popped
+
+   This signal is sent when an application context is popped.  The sender
+   is the application.  This usually falls in line with the
+   :data:`appcontext_tearing_down` signal.
+
+   .. versionadded:: 0.10
+
+.. data:: message_flashed
+
+   This signal is sent when the application is flashing a message.  The
+   messages is sent as `message` keyword argument and the category as
+   `category`.
+
+   .. versionadded:: 0.10
 
 .. currentmodule:: None
 
@@ -472,7 +590,7 @@ Signals
 
 .. _blinker: http://pypi.python.org/pypi/blinker
 
-Class Based Views
+Class-Based Views
 -----------------
 
 .. versionadded:: 0.7
@@ -507,7 +625,7 @@ Variable parts are passed to the view function as keyword arguments.
 The following converters are available:
 
 =========== ===============================================
-`unicode`   accepts any text without a slash (the default)
+`string`    accepts any text without a slash (the default)
 `int`       accepts integers
 `float`     like `int` but for floating point values
 `path`      like the default but also accepts slashes
@@ -558,7 +676,7 @@ with the route parameter the view function is defined with the decorator
 instead of the `view_func` parameter.
 
 =============== ==========================================================
-`rule`          the URL roule as string
+`rule`          the URL rule as string
 `endpoint`      the endpoint for the registered URL rule.  Flask itself
                 assumes that the name of the view function is the name
                 of the endpoint if not explicitly stated.
@@ -607,6 +725,10 @@ some defaults to :meth:`~flask.Flask.add_url_rule` or general behavior:
     HTTP `OPTIONS` response.  This can be useful when working with
     decorators that want to customize the `OPTIONS` response on a per-view
     basis.
+
+-   `required_methods`: if this attribute is set, Flask will always add
+    these methods when registering a URL rule even if the methods were
+    explicitly overriden in the ``route()`` call.
 
 Full example::
 

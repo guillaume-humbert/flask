@@ -3,18 +3,27 @@ Section: python
 Priority: optional
 Maintainer: Piotr Ożarowski <piotr@debian.org>
 Uploaders: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
-Build-Depends: debhelper (>= 7), python-all (>= 2.6.6-3), python-setuptools (>= 0.6b3)
-Build-Depends-Indep: python-jinja2, python-werkzeug (>= 0.6)
-Standards-Version: 3.9.2
-Vcs-Svn: svn://svn.debian.org/python-modules/packages/flask/trunk
-Vcs-Browser: http://svn.debian.org/viewsvn/python-modules/packages/flask/trunk/
+Build-Depends: debhelper (>= 9), dh-python,
+ python-all,
+ python-setuptools,
+# for docs:
+ python-sphinx (>= 1.0.7+dfsg),
+ python-werkzeug (>= 0.8), python-jinja2, python-itsdangerous,
+# for tests:
+ python-simplejson,
+Standards-Version: 3.9.4
+Vcs-Svn: svn://anonscm.debian.org/python-modules/packages/flask/trunk/
+Vcs-Browser: http://anonscm.debian.org/viewvc/python-modules/packages/flask/trunk/
 Homepage: http://flask.pocoo.org/
-XS-Python-Version: >= 2.6
+X-Python-Version: >= 2.5
+X-Python3-Version: >= 3.3
 
 Package: python-flask
 Architecture: all
 Depends: ${python:Depends}, ${misc:Depends}
-Recommends: python-pkg-resources, python-simplejson | python (>= 2.6)
+Recommends: python-pkg-resources, python-simplejson | python (>= 2.6),
+ python-blinker
+Suggests: python-flask-doc
 Description: micro web framework based on Werkzeug, Jinja2 and good intentions
  Flask is a micro web framework for Python based on Werkzeug, Jinja 2 and good
  intentions. A minimal Flask application looks like that:
@@ -28,3 +37,14 @@ Description: micro web framework based on Werkzeug, Jinja2 and good intentions
  .
    if __name__ == '__main__':
        app.run()
+
+Package: python-flask-doc
+Section: doc
+Architecture: all
+Priority: extra
+Depends: ${misc:Depends}, ${sphinxdoc:Depends}
+Recommends: python-flask
+Description: documentation for Flask micro web framework
+ Flask is a Python micro web framework based on Werkzeug and Jinja2
+ .
+ This package contains the documentation for Flask

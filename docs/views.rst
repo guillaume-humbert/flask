@@ -23,7 +23,7 @@ database and renders into a template::
 
 This is simple and flexible, but if you want to provide this view in a
 generic fashion that can be adapted to other models and templates as well
-you might want more flexibility.  This is where pluggable class based
+you might want more flexibility.  This is where pluggable class-based
 views come into place.  As the first step to convert this into a class
 based view you would do this::
 
@@ -36,7 +36,7 @@ based view you would do this::
             users = User.query.all()
             return render_template('users.html', objects=users)
 
-    app.add_url_rule('/users/', ShowUsers.as_view('show_users'))
+    app.add_url_rule('/users/', view_func=ShowUsers.as_view('show_users'))
 
 As you can see what you have to do is to create a subclass of
 :class:`flask.views.View` and implement
@@ -70,11 +70,11 @@ this by itself is not helpful, so let's refactor the code a bit::
             return User.query.all()
 
 This of course is not that helpful for such a small example, but it's good
-enough to explain the basic principle.  When you have a class based view
+enough to explain the basic principle.  When you have a class-based view
 the question comes up what `self` points to.  The way this works is that
 whenever the request is dispatched a new instance of the class is created
 and the :meth:`~flask.views.View.dispatch_request` method is called with
-the parameters from the URL rule.  The class itself is instanciated with
+the parameters from the URL rule.  The class itself is instantiated with
 the parameters passed to the :meth:`~flask.views.View.as_view` function.
 For instance you can write a class like this::
 
@@ -144,14 +144,22 @@ routing system it does not make much sense to decorate the class itself.
 Instead you either have to decorate the return value of
 :meth:`~flask.views.View.as_view` by hand::
 
-    view = rate_limited(UserAPI.as_view('users'))
+    def user_required(f):
+        """Checks whether user is logged in or raises error 401."""
+        def decorator(*args, **kwargs):
+            if not g.user:
+                abort(401)
+            return f(*args, **kwargs)
+        return decorator
+
+    view = user_required(UserAPI.as_view('users'))
     app.add_url_rule('/users/', view_func=view)
 
 Starting with Flask 0.8 there is also an alternative way where you can
 specify a list of decorators to apply in the class declaration::
 
     class UserAPI(MethodView):
-        decorators = [rate_limited]
+        decorators = [user_required]
 
 Due to the implicit self from the caller's perspective you cannot use
 regular view decorators on the individual methods of the view however,
@@ -210,7 +218,8 @@ and explicitly mentioning the methods for each::
 
     user_view = UserAPI.as_view('user_api')
     app.add_url_rule('/users/', defaults={'user_id': None},
-                     view_func=user_view, methods=['GET', 'POST'])
+                     view_func=user_view, methods=['GET',])
+    app.add_url_rule('/users/', view_func=user_view, methods=['POST',])
     app.add_url_rule('/users/<int:user_id>', view_func=user_view,
                      methods=['GET', 'PUT', 'DELETE'])
 
@@ -220,8 +229,9 @@ registration code::
     def register_api(view, endpoint, url, pk='id', pk_type='int'):
         view_func = view.as_view(endpoint)
         app.add_url_rule(url, defaults={pk: None},
-                         view_func=view_func, methods=['GET', 'POST'])
-        app.add_url_rule('%s<%s:%s>' % (url, pk), view_func=view_func,
+                         view_func=view_func, methods=['GET',])
+        app.add_url_rule(url, view_func=view_func, methods=['POST',])
+        app.add_url_rule('%s<%s:%s>' % (url, pk_type, pk), view_func=view_func,
                          methods=['GET', 'PUT', 'DELETE'])
 
     register_api(UserAPI, 'user_api', '/users/', pk='user_id')
