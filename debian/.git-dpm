@@ -6,3 +6,6 @@ ad6106ffe193ebb0f552eb201fae74af553b26c9
 flask_0.10.1.orig.tar.gz
 d3d078262b053f4438e2ed3fd6f9b923c2c92172
 544247
+debianTag="debian/%e%v"
+patchedTag="patched/%e%v"
+upstreamTag="upstream/%e%u"
