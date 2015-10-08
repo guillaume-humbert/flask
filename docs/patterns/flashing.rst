@@ -16,7 +16,11 @@ Simple Flashing
 
 So here is a full example::
 
-    from flask import flash, redirect, url_for, render_template
+    from flask import Flask, flash, redirect, render_template, \
+         request, url_for
+
+    app = Flask(__name__)
+    app.secret_key = 'some_secret'
 
     @app.route('/')
     def index():
@@ -27,12 +31,16 @@ So here is a full example::
         error = None
         if request.method == 'POST':
             if request.form['username'] != 'admin' or \
-               request.form['password'] != 'secret':
+                    request.form['password'] != 'secret':
                 error = 'Invalid credentials'
             else:
                 flash('You were successfully logged in')
                 return redirect(url_for('index'))
         return render_template('login.html', error=error)
+
+    if __name__ == "__main__":
+        app.run()
+
 
 And here the ``layout.html`` template which does the magic:
 
@@ -117,3 +125,27 @@ categories.  The loop looks slightly different in that situation then:
 This is just one example of how to render these flashed messages.  One
 might also use the category to add a prefix such as
 ``<strong>Error:</strong>`` to the message.
+
+Filtering Flash Messages
+------------------------
+
+.. versionadded:: 0.9
+
+Optionally you can pass a list of categories which filters the results of
+:func:`~flask.get_flashed_messages`.  This is useful if you wish to
+render each category in a separate block.
+
+.. sourcecode:: html+jinja
+
+    {% with errors = get_flashed_messages(category_filter=["error"]) %}
+    {% if errors %}
+    <div class="alert-message block-message error">
+      <a class="close" href="#">×</a>
+      <ul>
+        {%- for msg in errors %}
+        <li>{{ msg }}</li>
+        {% endfor -%}
+      </ul>
+    </div>
+    {% endif %}
+    {% endwith %}
