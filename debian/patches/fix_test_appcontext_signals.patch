@@ -1,7 +1,17 @@
-Index: flask-0.10.1/flask/testsuite/signals.py
-===================================================================
---- flask-0.10.1.orig/flask/testsuite/signals.py
-+++ flask-0.10.1/flask/testsuite/signals.py
+From 1e319d0543e7779aa35eccd44da06ec76da3c15d Mon Sep 17 00:00:00 2001
+From: SVN-Git Migration <python-modules-team@lists.alioth.debian.org>
+Date: Thu, 8 Oct 2015 09:05:14 -0700
+Subject: fix_test_appcontext_signals
+
+Patch-Name: fix_test_appcontext_signals.patch
+---
+ flask/testsuite/signals.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/flask/testsuite/signals.py b/flask/testsuite/signals.py
+index e061932..45ca45d 100644
+--- a/flask/testsuite/signals.py
++++ b/flask/testsuite/signals.py
 @@ -102,7 +102,7 @@ class SignalsTestCase(FlaskTestCase):
          def record_push(sender, **kwargs):
              recorded.append('push')
