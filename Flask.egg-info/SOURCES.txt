@@ -12,7 +12,8 @@ Flask.egg-info/dependency_links.txt
 Flask.egg-info/not-zip-safe
 Flask.egg-info/requires.txt
 Flask.egg-info/top_level.txt
-docs/.DS_Store
+artwork/LICENSE
+artwork/logo-full.svg
 docs/.gitignore
 docs/Makefile
 docs/api.rst
@@ -141,6 +142,8 @@ tests/moduleapp/apps/admin/templates/index.html
 tests/moduleapp/apps/frontend/__init__.py
 tests/moduleapp/apps/frontend/templates/index.html
 tests/static/index.html
+tests/subdomaintestmodule/__init__.py
+tests/subdomaintestmodule/static/hello.txt
 tests/templates/_macro.html
 tests/templates/context_template.html
 tests/templates/escaping_template.html
