@@ -59,7 +59,7 @@ following quick checklist:
    Not the object itself, but the module it is in.  Do the importing at
    the *bottom* of the file.
 
-Here an example `__init__.py`::
+Here's an example `__init__.py`::
 
     from flask import Flask
     app = Flask(__name__)
@@ -109,7 +109,7 @@ Working with Modules
 --------------------
 
 For larger applications with more than a dozen views it makes sense to
-split the views into module.  First let's look at the typical struture of
+split the views into modules.  First let's look at the typical structure of
 such an application::
 
     /yourapplication
@@ -133,10 +133,10 @@ sure to place an empty `__init__.py` file in there.  Let's start with the
 
 First we have to create a :class:`~flask.Module` object with the name of
 the package.  This works very similar to the :class:`~flask.Flask` object
-you have already worked with, it just does not support all of the method,
+you have already worked with, it just does not support all of the methods,
 but most of them are the same.
 
-Long story short, here a nice and concise example::
+Long story short, here's a nice and concise example::
 
     from flask import Module
 
@@ -151,7 +151,7 @@ Long story short, here a nice and concise example::
         pass
 
     @admin.route('/logout')
-    def login():
+    def logout():
         pass
 
 Do the same with the `frontend.py` and then make sure to register the
@@ -186,7 +186,7 @@ different module (say `frontend`).  This would look like this::
     def index():
         return "I'm the frontend index"
 
-Now let's say we only want to redirect to a different module in the same
+Now let's say we only want to redirect to a different function in the same
 module.  Then we can either use the full qualified endpoint name like we
 did in the example above, or we just use the function name::
 

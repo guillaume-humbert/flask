@@ -41,9 +41,16 @@ Links
 from setuptools import setup
 
 
+def run_tests():
+    import os, sys
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'tests'))
+    from flask_tests import suite
+    return suite()
+
+
 setup(
     name='Flask',
-    version='0.3.1',
+    version='0.4',
     url='http://github.com/mitsuhiko/flask/',
     license='BSD',
     author='Armin Ronacher',
@@ -67,5 +74,6 @@ setup(
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Topic :: Software Development :: Libraries :: Python Modules'
-    ]
+    ],
+    test_suite='__main__.run_tests'
 )

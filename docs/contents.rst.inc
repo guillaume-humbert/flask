@@ -40,6 +40,10 @@ Design notes, legal information and changelog are here for the interested.
    :maxdepth: 2
 
    design
+   htmlfaq
+   security
+   unicode
+   extensiondev
    license
    upgrading
    changelog

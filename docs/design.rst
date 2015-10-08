@@ -34,8 +34,8 @@ Would look like this instead::
         return 'Hello World!'
 
 There are three major reasons for this.  The most important one is that
-implicit application objects require that there may only be one class at
-the time.  There are ways to fake multiple application with a single
+implicit application objects require that there may only be one instance at
+the time.  There are ways to fake multiple applications with a single
 application object, like maintaining a stack of applications, but this
 causes some problems I won't outline here in detail.  Now the question is:
 when does a microframework need more than one application at the same
@@ -44,7 +44,7 @@ something it can be very helpful to create a minimal application to test
 specific behavior.  When the application object is deleted everything it
 allocated will be freed again.
 
-Another thing that becomes possible when you have an explicit object laying
+Another thing that becomes possible when you have an explicit object lying
 around in your code is that you can subclass the base class
 (:class:`~flask.Flask`) to alter specific behaviour.  This would not be
 possible without hacks if the object were created ahead of time for you
@@ -73,6 +73,10 @@ want to apply a WSGI middleware, just wrap it and you're done (though
 there are better ways to do that so that you do not lose the reference
 to the application object :meth:`~flask.Flask.wsgi_app`).
 
+Furthermore this design makes it possible to use a factory function to
+create the application which is very helpful for unittesting and similar
+things (:ref:`app-factories`).
+
 One Template Engine
 -------------------
 
@@ -90,15 +94,15 @@ of variables and take the return value as string.
 But that's about where similarities end.  Jinja2 for example has an
 extensive filter system, a certain way to do template inheritance, support
 for reusable blocks (macros) that can be used from inside templates and
-also from Python code, uses unicode for all operations, supports
+also from Python code, uses Unicode for all operations, supports
 iterative template rendering, configurable syntax and more.  On the other
 hand an engine like Genshi is based on XML stream evaluation, template
 inheritance by taking the availability of XPath into account and more.
 Mako on the other hand treats templates similar to Python modules.
 
-When it comes to connecting a template engine with an application or 
+When it comes to connecting a template engine with an application or
 framework there is more than just rendering templates.  For instance,
-Flask uses Jinja2's extensive autoescaping support.  Also it provides 
+Flask uses Jinja2's extensive autoescaping support.  Also it provides
 ways to access macros from Jinja2 templates.
 
 A template abstraction layer that would not take the unique features of
@@ -145,3 +149,21 @@ quick and easy to write a traditional web application.
 
 Also see the :ref:`becomingbig` section of the documentation for some
 inspiration for larger applications based on Flask.
+
+
+What Flask is, What Flask is Not
+--------------------------------
+
+Flask will never have a database layer.  It will not have a form library
+or anything else in that direction.  Flask itself just bridges to Werkzeug
+to implement a proper WSGI application and to Jinja2 to handle templating.
+It also binds to a few common standard library packages such as logging.
+Everything else is up for extensions.
+
+Why is this the case?  Because people have different preferences and
+requirements and Flask could not meet those if it would force any of this
+into the core.  The majority of web applications will need a template
+engine in some sort.  However not every application needs a SQL database.
+
+The idea of Flask is to build a good foundation for all applications.
+Everything else is up to you or extensions.
