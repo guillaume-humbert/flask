@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: Flask
-Version: 0.7.2
+Version: 0.8
 Summary: A microframework based on Werkzeug, Jinja2 and good intentions
 Home-page: http://github.com/mitsuhiko/flask/
 Author: Armin Ronacher

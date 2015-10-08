@@ -29,20 +29,7 @@ Incoming Request Data
 ---------------------
 
 .. autoclass:: Request
-
-.. class:: request
-
-   To access incoming request data, you can use the global `request`
-   object.  Flask parses incoming request data for you and gives you
-   access to it through that global object.  Internally Flask makes
-   sure that you always get the correct data for the active thread if you
-   are in a multithreaded environment.
-
-   This is a proxy.  See :ref:`notes-on-proxies` for more information.
-
-   The request object is an instance of a :class:`~werkzeug.wrappers.Request`
-   subclass and provides all of the attributes Werkzeug defines.  This
-   just shows a quick overview of the most important ones.
+   :members:
 
    .. attribute:: form
 
@@ -71,6 +58,10 @@ Incoming Request Data
       the data is stored unmodified in this stream for consumption.  Most
       of the time it is a better idea to use :attr:`data` which will give
       you that data as a string.  The stream only returns the data once.
+
+   .. attribute:: headers
+
+      The incoming request headers as a dictionary like object.
 
    .. attribute:: data
 
@@ -128,11 +119,20 @@ Incoming Request Data
       Libraries that do that are prototype, jQuery and Mochikit and
       probably some more.
 
-   .. attribute:: json
+.. class:: request
 
-      Contains the parsed body of the JSON request if the mimetype of
-      the incoming data was `application/json`.  This requires Python 2.6
-      or an installed version of simplejson.
+   To access incoming request data, you can use the global `request`
+   object.  Flask parses incoming request data for you and gives you
+   access to it through that global object.  Internally Flask makes
+   sure that you always get the correct data for the active thread if you
+   are in a multithreaded environment.
+
+   This is a proxy.  See :ref:`notes-on-proxies` for more information.
+
+   The request object is an instance of a :class:`~werkzeug.wrappers.Request`
+   subclass and provides all of the attributes Werkzeug defines.  This
+   just shows a quick overview of the most important ones.
+
 
 Response Objects
 ----------------
@@ -195,8 +195,49 @@ To access the current session you can use the :class:`session` object:
       session will be deleted when the user closes the browser.
 
 
+Session Interface
+-----------------
+
+.. versionadded:: 0.8
+
+The session interface provides a simple way to replace the session
+implementation that Flask is using.
+
+.. currentmodule:: flask.sessions
+
+.. autoclass:: SessionInterface
+   :members:
+
+.. autoclass:: SecureCookieSessionInterface
+   :members:
+
+.. autoclass:: NullSession
+   :members:
+
+.. autoclass:: SessionMixin
+   :members:
+
+.. admonition:: Notice
+
+   The ``PERMANENT_SESSION_LIFETIME`` config key can also be an integer
+   starting with Flask 0.8.  Either catch this down yourself or use
+   the :attr:`~flask.Flask.permanent_session_lifetime` attribute on the
+   app which converts the result to an integer automatically.
+
+
+Test Client
+-----------
+
+.. currentmodule:: flask.testing
+
+.. autoclass:: FlaskClient
+   :members:
+
+
 Application Globals
 -------------------
+
+.. currentmodule:: flask
 
 To share data that is valid for one request only from one function to
 another, a global variable is not good enough because it would break in
@@ -306,6 +347,23 @@ Configuration
 
 .. autoclass:: Config
    :members:
+
+Extensions
+----------
+
+.. data:: flask.ext
+
+   This module acts as redirect import module to Flask extensions.  It was
+   added in 0.8 as the canonical way to import Flask extensions and makes
+   it possible for us to have more flexibility in how we distribute
+   extensions.
+
+   If you want to use an extension named “Flask-Foo” you would import it
+   from :data:`~flask.ext` as follows::
+
+        from flask.ext import foo
+
+   .. versionadded:: 0.8
 
 Useful Internals
 ----------------
@@ -426,3 +484,141 @@ Class Based Views
 
 .. autoclass:: flask.views.MethodView
    :members:
+
+.. _url-route-registrations:
+
+URL Route Registrations
+-----------------------
+
+Generally there are three ways to define rules for the routing system:
+
+1.  You can use the :meth:`flask.Flask.route` decorator.
+2.  You can use the :meth:`flask.Flask.add_url_rule` function.
+3.  You can directly access the underlying Werkzeug routing system
+    which is exposed as :attr:`flask.Flask.url_map`.
+
+Variable parts in the route can be specified with angular brackets
+(``/user/<username>``).  By default a variable part in the URL accepts any
+string without a slash however a different converter can be specified as
+well by using ``<converter:name>``.
+
+Variable parts are passed to the view function as keyword arguments.
+
+The following converters are available:
+
+=========== ===============================================
+`unicode`   accepts any text without a slash (the default)
+`int`       accepts integers
+`float`     like `int` but for floating point values
+`path`      like the default but also accepts slashes
+=========== ===============================================
+
+Here are some examples::
+
+    @app.route('/')
+    def index():
+        pass
+
+    @app.route('/<username>')
+    def show_user(username):
+        pass
+
+    @app.route('/post/<int:post_id>')
+    def show_post(post_id):
+        pass
+
+An important detail to keep in mind is how Flask deals with trailing
+slashes.  The idea is to keep each URL unique so the following rules
+apply:
+
+1. If a rule ends with a slash and is requested without a slash by the
+   user, the user is automatically redirected to the same page with a
+   trailing slash attached.
+2. If a rule does not end with a trailing slash and the user requests the
+   page with a trailing slash, a 404 not found is raised.
+
+This is consistent with how web servers deal with static files.  This
+also makes it possible to use relative link targets safely.
+
+You can also define multiple rules for the same function.  They have to be
+unique however.  Defaults can also be specified.  Here for example is a
+definition for a URL that accepts an optional page::
+
+    @app.route('/users/', defaults={'page': 1})
+    @app.route('/users/page/<int:page>')
+    def show_users(page):
+        pass
+
+This specifies that ``/users/`` will be the URL for page one and
+``/users/page/N`` will be the URL for page `N`.
+
+Here are the parameters that :meth:`~flask.Flask.route` and
+:meth:`~flask.Flask.add_url_rule` accept.  The only difference is that
+with the route parameter the view function is defined with the decorator
+instead of the `view_func` parameter.
+
+=============== ==========================================================
+`rule`          the URL roule as string
+`endpoint`      the endpoint for the registered URL rule.  Flask itself
+                assumes that the name of the view function is the name
+                of the endpoint if not explicitly stated.
+`view_func`     the function to call when serving a request to the
+                provided endpoint.  If this is not provided one can
+                specify the function later by storing it in the
+                :attr:`~flask.Flask.view_functions` dictionary with the
+                endpoint as key.
+`defaults`      A dictionary with defaults for this rule.  See the
+                example above for how defaults work.
+`subdomain`     specifies the rule for the subdomain in case subdomain
+                matching is in use.  If not specified the default
+                subdomain is assumed.
+`**options`     the options to be forwarded to the underlying
+                :class:`~werkzeug.routing.Rule` object.  A change to
+                Werkzeug is handling of method options.  methods is a list
+                of methods this rule should be limited to (`GET`, `POST`
+                etc.).  By default a rule just listens for `GET` (and
+                implicitly `HEAD`).  Starting with Flask 0.6, `OPTIONS` is
+                implicitly added and handled by the standard request
+                handling.  They have to be specified as keyword arguments.
+=============== ==========================================================
+
+.. _view-func-options:
+
+View Function Options
+---------------------
+
+For internal usage the view functions can have some attributes attached to
+customize behavior the view function would normally not have control over.
+The following attributes can be provided optionally to either override
+some defaults to :meth:`~flask.Flask.add_url_rule` or general behavior:
+
+-   `__name__`: The name of a function is by default used as endpoint.  If
+    endpoint is provided explicitly this value is used.  Additionally this
+    will be prefixed with the name of the blueprint by default which
+    cannot be customized from the function itself.
+
+-   `methods`: If methods are not provided when the URL rule is added,
+    Flask will look on the view function object itself is an `methods`
+    attribute exists.  If it does, it will pull the information for the
+    methods from there.
+
+-   `provide_automatic_options`: if this attribute is set Flask will
+    either force enable or disable the automatic implementation of the
+    HTTP `OPTIONS` response.  This can be useful when working with
+    decorators that want to customize the `OPTIONS` response on a per-view
+    basis.
+
+Full example::
+
+    def index():
+        if request.method == 'OPTIONS':
+            # custom options handling here
+            ...
+        return 'Hello World!'
+    index.provide_automatic_options = False
+    index.methods = ['GET', 'OPTIONS']
+
+    app.add_url_rule('/', index)
+
+.. versionadded:: 0.8
+   The `provide_automatic_options` functionality was added.

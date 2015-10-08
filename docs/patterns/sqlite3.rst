@@ -24,7 +24,15 @@ So here is a simple example of how you can use SQLite 3 with Flask::
 
     @app.teardown_request
     def teardown_request(exception):
-        g.db.close()
+        if hasattr(g, 'db'):
+            g.db.close()
+
+.. note::
+
+   Please keep in mind that the teardown request functions are always
+   executed, even if a before-request handler failed or was never
+   executed.  Because of this we have to make sure here that the database
+   is there before we close it.
 
 Connect on Demand
 -----------------
@@ -34,7 +42,7 @@ executed the before-request handlers for you.  If you are attempting to
 use the database from a script or the interactive Python shell you would
 have to do something like this::
 
-    with app.test_request_context()
+    with app.test_request_context():
         app.preprocess_request()
         # now you can use the g.db object
 
