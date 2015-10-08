@@ -10,7 +10,7 @@
     :license: BSD, see LICENSE for more details.
 """
 from __future__ import with_statement
-import sqlite3
+from sqlite3 import dbapi2 as sqlite3
 from contextlib import closing
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
@@ -47,11 +47,10 @@ def before_request():
     g.db = connect_db()
 
 
-@app.after_request
-def after_request(response):
+@app.teardown_request
+def teardown_request(exception):
     """Closes the database again at the end of the request."""
     g.db.close()
-    return response
 
 
 @app.route('/')

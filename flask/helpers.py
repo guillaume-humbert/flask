@@ -15,6 +15,7 @@ import posixpath
 import mimetypes
 from time import time
 from zlib import adler32
+from threading import RLock
 
 # try to load the best simplejson implementation available.  If JSON
 # is not installed, we add a failing class.
@@ -33,7 +34,7 @@ except ImportError:
             json_available = False
 
 
-from werkzeug import Headers, wrap_file, is_resource_modified, cached_property
+from werkzeug import Headers, wrap_file
 from werkzeug.exceptions import NotFound
 
 from jinja2 import FileSystemLoader
@@ -56,6 +57,10 @@ if not json_available or '\\/' not in json.dumps('/'):
         return json.dumps(*args, **kwargs).replace('/', '\\/')
 else:
     _tojson_filter = json.dumps
+
+
+# sentinel
+_missing = object()
 
 
 # what separators does this operating system provide that are not a slash?
@@ -151,22 +156,16 @@ def make_response(*args):
 
 def url_for(endpoint, **values):
     """Generates a URL to the given endpoint with the method provided.
-    The endpoint is relative to the active module if modules are in use.
-
-    Here some examples:
-
-    ==================== ======================= =============================
-    Active Module        Target Endpoint         Target Function
-    ==================== ======================= =============================
-    `None`               ``'index'``             `index` of the application
-    `None`               ``'.index'``            `index` of the application
-    ``'admin'``          ``'index'``             `index` of the `admin` module
-    any                  ``'.index'``            `index` of the application
-    any                  ``'admin.index'``       `index` of the `admin` module
-    ==================== ======================= =============================
 
     Variable arguments that are unknown to the target endpoint are appended
-    to the generated URL as query arguments.
+    to the generated URL as query arguments.  If the value of a query argument
+    is `None`, the whole pair is skipped.  In case blueprints are active
+    you can shortcut references to the same blueprint by prefixing the
+    local endpoint with a dot (``.``).
+
+    This will reference the index function local to the current blueprint::
+
+        url_for('.index')
 
     For more information, head over to the :ref:`Quickstart <url-building>`.
 
@@ -175,13 +174,22 @@ def url_for(endpoint, **values):
     :param _external: if set to `True`, an absolute URL is generated.
     """
     ctx = _request_ctx_stack.top
-    if '.' not in endpoint:
-        mod = ctx.request.module
-        if mod is not None:
-            endpoint = mod + '.' + endpoint
-    elif endpoint.startswith('.'):
-        endpoint = endpoint[1:]
+    blueprint_name = request.blueprint
+    if not ctx.request._is_old_module:
+        if endpoint[:1] == '.':
+            if blueprint_name is not None:
+                endpoint = blueprint_name + endpoint
+            else:
+                endpoint = endpoint[1:]
+    else:
+        # TODO: get rid of this deprecated functionality in 1.0
+        if '.' not in endpoint:
+            if blueprint_name is not None:
+                endpoint = blueprint_name + '.' + endpoint
+        elif endpoint.startswith('.'):
+            endpoint = endpoint[1:]
     external = values.pop('_external', False)
+    ctx.app.inject_url_defaults(endpoint, values)
     return ctx.url_adapter.build(endpoint, values, force_external=external)
 
 
@@ -248,7 +256,8 @@ def get_flashed_messages(with_categories=False):
     """
     flashes = _request_ctx_stack.top.flashes
     if flashes is None:
-        _request_ctx_stack.top.flashes = flashes = session.pop('_flashes', [])
+        _request_ctx_stack.top.flashes = flashes = session.pop('_flashes') \
+            if '_flashes' in session else []
     if not with_categories:
         return [x[1] for x in flashes]
     return flashes
@@ -266,7 +275,9 @@ def send_file(filename_or_fp, mimetype=None, as_attachment=False,
 
     By default it will try to guess the mimetype for you, but you can
     also explicitly provide one.  For extra security you probably want
-    to sent certain files as attachment (HTML for instance).
+    to send certain files as attachment (HTML for instance).  The mimetype
+    guessing requires a `filename` or an `attachment_filename` to be
+    provided.
 
     Please never pass filenames to this function from user sources without
     checking them first.  Something like this is usually sufficient to
@@ -281,12 +292,20 @@ def send_file(filename_or_fp, mimetype=None, as_attachment=False,
        The `add_etags`, `cache_timeout` and `conditional` parameters were
        added.  The default behaviour is now to attach etags.
 
+    .. versionchanged:: 0.7
+       mimetype guessing and etag support for file objects was
+       deprecated because it was unreliable.  Pass a filename if you are
+       able to, otherwise attach an etag yourself.  This functionality
+       will be removed in Flask 1.0
+
     :param filename_or_fp: the filename of the file to send.  This is
                            relative to the :attr:`~Flask.root_path` if a
                            relative path is specified.
                            Alternatively a file object might be provided
                            in which case `X-Sendfile` might not work and
-                           fall back to the traditional method.
+                           fall back to the traditional method.  Make sure
+                           that the file pointer is positioned at the start
+                           of data to send before calling :func:`send_file`.
     :param mimetype: the mimetype of the file if provided, otherwise
                      auto detection happens.
     :param as_attachment: set to `True` if you want to send this file with
@@ -302,8 +321,25 @@ def send_file(filename_or_fp, mimetype=None, as_attachment=False,
         filename = filename_or_fp
         file = None
     else:
+        from warnings import warn
         file = filename_or_fp
         filename = getattr(file, 'name', None)
+
+        # XXX: this behaviour is now deprecated because it was unreliable.
+        # removed in Flask 1.0
+        if not attachment_filename and not mimetype \
+           and isinstance(filename, basestring):
+            warn(DeprecationWarning('The filename support for file objects '
+                'passed to send_file is now deprecated.  Pass an '
+                'attach_filename if you want mimetypes to be guessed.'),
+                stacklevel=2)
+        if add_etags:
+            warn(DeprecationWarning('In future flask releases etags will no '
+                'longer be generated for file objects passed to the send_file '
+                'function because this behaviour was unreliable.  Pass '
+                'filenames instead if possible, otherwise attach an etag '
+                'yourself based on another value'), stacklevel=2)
+
     if filename is not None:
         if not os.path.isabs(filename):
             filename = os.path.join(current_app.root_path, filename)
@@ -337,13 +373,9 @@ def send_file(filename_or_fp, mimetype=None, as_attachment=False,
                                     direct_passthrough=True)
 
     # if we know the file modification date, we can store it as the
-    # current time to better support conditional requests.  Werkzeug
-    # as of 0.6.1 will override this value however in the conditional
-    # response with the current time.  This will be fixed in Werkzeug
-    # with a new release, however many WSGI servers will still emit
-    # a separate date header.
+    # the time of the last modification.
     if mtime is not None:
-        rv.date = int(mtime)
+        rv.last_modified = int(mtime)
 
     rv.cache_control.public = True
     if cache_timeout:
@@ -354,7 +386,10 @@ def send_file(filename_or_fp, mimetype=None, as_attachment=False,
         rv.set_etag('flask-%s-%s-%s' % (
             os.path.getmtime(filename),
             os.path.getsize(filename),
-            adler32(filename) & 0xffffffff
+            adler32(
+                filename.encode('utf8') if isinstance(filename, unicode)
+                else filename
+            ) & 0xffffffff
         ))
         if conditional:
             rv = rv.make_conditional(request)
@@ -363,6 +398,31 @@ def send_file(filename_or_fp, mimetype=None, as_attachment=False,
             if rv.status_code == 304:
                 rv.headers.pop('x-sendfile', None)
     return rv
+
+
+def safe_join(directory, filename):
+    """Safely join `directory` and `filename`.
+
+    Example usage::
+
+        @app.route('/wiki/<path:filename>')
+        def wiki_page(filename):
+            filename = safe_join(app.config['WIKI_FOLDER'], filename)
+            with open(filename, 'rb') as fd:
+                content = fd.read() # Read and process the file content...
+
+    :param directory: the base directory.
+    :param filename: the untrusted filename relative to that directory.
+    :raises: :class:`~werkzeug.exceptions.NotFound` if the retsulting path
+             would fall out of `directory`.
+    """
+    filename = posixpath.normpath(filename)
+    for sep in _os_alt_seps:
+        if sep in filename:
+            raise NotFound()
+    if os.path.isabs(filename) or filename.startswith('../'):
+        raise NotFound()
+    return os.path.join(directory, filename)
 
 
 def send_from_directory(directory, filename, **options):
@@ -392,13 +452,7 @@ def send_from_directory(directory, filename, **options):
     :param options: optional keyword arguments that are directly
                     forwarded to :func:`send_file`.
     """
-    filename = posixpath.normpath(filename)
-    for sep in _os_alt_seps:
-        if sep in filename:
-            raise NotFound()
-    if os.path.isabs(filename) or filename.startswith('../'):
-        raise NotFound()
-    filename = os.path.join(directory, filename)
+    filename = safe_join(directory, filename)
     if not os.path.isfile(filename):
         raise NotFound()
     return send_file(filename, conditional=True, **options)
@@ -412,15 +466,67 @@ def _get_package_path(name):
         return os.getcwd()
 
 
+class locked_cached_property(object):
+    """A decorator that converts a function into a lazy property.  The
+    function wrapped is called the first time to retrieve the result
+    and then that calculated result is used the next time you access
+    the value.  Works like the one in Werkzeug but has a lock for
+    thread safety.
+    """
+
+    def __init__(self, func, name=None, doc=None):
+        self.__name__ = name or func.__name__
+        self.__module__ = func.__module__
+        self.__doc__ = doc or func.__doc__
+        self.func = func
+        self.lock = RLock()
+
+    def __get__(self, obj, type=None):
+        if obj is None:
+            return self
+        with self.lock:
+            value = obj.__dict__.get(self.__name__, _missing)
+            if value is _missing:
+                value = self.func(obj)
+                obj.__dict__[self.__name__] = value
+            return value
+
+
 class _PackageBoundObject(object):
 
-    def __init__(self, import_name):
+    def __init__(self, import_name, template_folder=None):
         #: The name of the package or module.  Do not change this once
         #: it was set by the constructor.
         self.import_name = import_name
 
+        #: location of the templates.  `None` if templates should not be
+        #: exposed.
+        self.template_folder = template_folder
+
         #: Where is the app root located?
         self.root_path = _get_package_path(self.import_name)
+
+        self._static_folder = None
+        self._static_url_path = None
+
+    def _get_static_folder(self):
+        if self._static_folder is not None:
+            return os.path.join(self.root_path, self._static_folder)
+    def _set_static_folder(self, value):
+        self._static_folder = value
+    static_folder = property(_get_static_folder, _set_static_folder)
+    del _get_static_folder, _set_static_folder
+
+    def _get_static_url_path(self):
+        if self._static_url_path is None:
+            if self.static_folder is None:
+                return None
+            return '/' + os.path.basename(self.static_folder)
+        return self._static_url_path
+    def _set_static_url_path(self, value):
+        self._static_url_path = value
+    static_url_path = property(_get_static_url_path, _set_static_url_path)
+    del _get_static_url_path, _set_static_url_path
 
     @property
     def has_static_folder(self):
@@ -429,15 +535,17 @@ class _PackageBoundObject(object):
 
         .. versionadded:: 0.5
         """
-        return os.path.isdir(os.path.join(self.root_path, 'static'))
+        return self.static_folder is not None
 
-    @cached_property
+    @locked_cached_property
     def jinja_loader(self):
         """The Jinja loader for this package bound object.
 
         .. versionadded:: 0.5
         """
-        return FileSystemLoader(os.path.join(self.root_path, 'templates'))
+        if self.template_folder is not None:
+            return FileSystemLoader(os.path.join(self.root_path,
+                                                 self.template_folder))
 
     def send_static_file(self, filename):
         """Function used internally to send static files from the static
@@ -445,15 +553,16 @@ class _PackageBoundObject(object):
 
         .. versionadded:: 0.5
         """
-        return send_from_directory(os.path.join(self.root_path, 'static'),
-                                   filename)
+        if not self.has_static_folder:
+            raise RuntimeError('No static folder for this object')
+        return send_from_directory(self.static_folder, filename)
 
     def open_resource(self, resource):
         """Opens a resource from the application's resource folder.  To see
         how this works, consider the following folder structure::
 
             /myapplication.py
-            /schemal.sql
+            /schema.sql
             /static
                 /style.css
             /templates

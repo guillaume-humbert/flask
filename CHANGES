@@ -3,6 +3,61 @@ Flask Changelog
 
 Here you can see the full list of changes between each Flask release.
 
+Version 0.7
+-----------
+
+Released on June 28th 2011, codename Grappa
+
+- Added :meth:`~flask.Flask.make_default_options_response`
+  which can be used by subclasses to alter the default
+  behaviour for `OPTIONS` responses.
+- Unbound locals now raise a proper :exc:`RuntimeError` instead
+  of an :exc:`AttributeError`.
+- Mimetype guessing and etag support based on file objects is now
+  deprecated for :func:`flask.send_file` because it was unreliable.
+  Pass filenames instead or attach your own etags and provide a
+  proper mimetype by hand.
+- Static file handling for modules now requires the name of the
+  static folder to be supplied explicitly.  The previous autodetection
+  was not reliable and caused issues on Google's App Engine.  Until
+  1.0 the old behaviour will continue to work but issue dependency
+  warnings.
+- fixed a problem for Flask to run on jython.
+- added a `PROPAGATE_EXCEPTIONS` configuration variable that can be
+  used to flip the setting of exception propagation which previously
+  was linked to `DEBUG` alone and is now linked to either `DEBUG` or
+  `TESTING`.
+- Flask no longer internally depends on rules being added through the
+  `add_url_rule` function and can now also accept regular werkzeug
+  rules added to the url map.
+- Added an `endpoint` method to the flask application object which
+  allows one to register a callback to an arbitrary endpoint with
+  a decorator.
+- Use Last-Modified for static file sending instead of Date which
+  was incorrectly introduced in 0.6.
+- Added `create_jinja_loader` to override the loader creation process.
+- Implemented a silent flag for `config.from_pyfile`.
+- Added `teardown_request` decorator, for functions that should run at the end
+  of a request regardless of whether an exception occurred.  Also the behavior
+  for `after_request` was changed.  It's now no longer executed when an exception
+  is raised.  See :ref:`upgrading-to-new-teardown-handling`
+- Implemented :func:`flask.has_request_context`
+- Deprecated `init_jinja_globals`.  Override the
+  :meth:`~flask.Flask.create_jinja_environment` method instead to
+  achieve the same functionality.
+- Added :func:`flask.safe_join`
+- The automatic JSON request data unpacking now looks at the charset
+  mimetype parameter.
+- Don't modify the session on :func:`flask.get_flashed_messages` if there
+  are no messages in the session.
+- `before_request` handlers are now able to abort requests with errors.
+- it is not possible to define user exception handlers.  That way you can
+  provide custom error messages from a central hub for certain errors that
+  might occur during request processing (for instance database connection
+  errors, timeouts from remote resources etc.).
+- Blueprints can provide blueprint specific error handlers.
+- Implemented generic pluggable views (class based views).
+
 Version 0.6.1
 -------------
 
@@ -27,7 +82,7 @@ Released on July 27th 2010, codename Whisky
 - after request functions are now called in reverse order of
   registration.
 - OPTIONS is now automatically implemented by Flask unless the
-  application explictly adds 'OPTIONS' as method to the URL rule.
+  application explicitly adds 'OPTIONS' as method to the URL rule.
   In this case no automatic OPTIONS handling kicks in.
 - static rules are now even in place if there is no static folder
   for the module.  This was implemented to aid GAE which will
@@ -47,7 +102,7 @@ Released on July 27th 2010, codename Whisky
 - added signalling support based on blinker.  This feature is currently
   optional and supposed to be used by extensions and applications.  If
   you want to use it, make sure to have `blinker`_ installed.
-- refactored the way url adapters are created.  This process is now
+- refactored the way URL adapters are created.  This process is now
   fully customizable with the :meth:`~flask.Flask.create_url_adapter`
   method.
 - modules can now register for a subdomain instead of just an URL
