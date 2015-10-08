@@ -19,9 +19,10 @@ from itertools import chain
 from jinja2 import Environment, PackageLoader, FileSystemLoader
 from werkzeug import Request as RequestBase, Response as ResponseBase, \
      LocalStack, LocalProxy, create_environ, SharedDataMiddleware, \
-     ImmutableDict, cached_property, wrap_file, Headers
+     ImmutableDict, cached_property, wrap_file, Headers, \
+     import_string
 from werkzeug.routing import Map, Rule
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException, InternalServerError
 from werkzeug.contrib.securecookie import SecureCookie
 
 # try to load the best simplejson implementation available.  If JSON
@@ -85,7 +86,7 @@ class Response(ResponseBase):
     :meth:`~flask.Flask.make_response` will take care of that for you.
 
     If you want to replace the response object used you can subclass this and
-    set :attr:`~flask.Flask.request_class` to your subclass.
+    set :attr:`~flask.Flask.response_class` to your subclass.
     """
     default_mimetype = 'text/html'
 
@@ -147,15 +148,24 @@ class _RequestContext(object):
         except HTTPException, e:
             self.request.routing_exception = e
 
-    def __enter__(self):
+    def push(self):
+        """Binds the request context."""
         _request_ctx_stack.push(self)
+
+    def pop(self):
+        """Pops the request context."""
+        _request_ctx_stack.pop()
+
+    def __enter__(self):
+        self.push()
+        return self
 
     def __exit__(self, exc_type, exc_value, tb):
         # do not pop the request stack if we are in debug mode and an
         # exception happened.  This will allow the debugger to still
         # access the request object in the interactive shell.
         if tb is None or not self.app.debug:
-            _request_ctx_stack.pop()
+            self.pop()
 
 
 def url_for(endpoint, **values):
@@ -217,24 +227,49 @@ def get_template_attribute(template_name, attribute):
                    attribute)
 
 
-def flash(message):
+def flash(message, category='message'):
     """Flashes a message to the next request.  In order to remove the
     flashed message from the session and to display it to the user,
     the template has to call :func:`get_flashed_messages`.
 
+    .. versionchanged: 0.3
+       `category` parameter added.
+
     :param message: the message to be flashed.
+    :param category: the category for the message.  The following values
+                     are recommended: ``'message'`` for any kind of message,
+                     ``'error'`` for errors, ``'info'`` for information
+                     messages and ``'warning'`` for warnings.  However any
+                     kind of string can be used as category.
     """
-    session.setdefault('_flashes', []).append(message)
+    session.setdefault('_flashes', []).append((category, message))
 
 
-def get_flashed_messages():
+def get_flashed_messages(with_categories=False):
     """Pulls all flashed messages from the session and returns them.
     Further calls in the same request to the function will return
-    the same messages.
+    the same messages.  By default just the messages are returned,
+    but when `with_categories` is set to `True`, the return value will
+    be a list of tuples in the form ``(category, message)`` instead.
+
+    Example usage:
+
+    .. sourcecode:: html+jinja
+
+        {% for category, msg in get_flashed_messages(with_categories=true) %}
+          <p class=flash-{{ category }}>{{ msg }}
+        {% endfor %}
+
+    .. versionchanged:: 0.3
+       `with_categories` parameter added.
+
+    :param with_categories: set to `True` to also receive categories.
     """
     flashes = _request_ctx_stack.top.flashes
     if flashes is None:
         _request_ctx_stack.top.flashes = flashes = session.pop('_flashes', [])
+    if not with_categories:
+        return [x[1] for x in flashes]
     return flashes
 
 
@@ -562,7 +597,7 @@ class Module(_PackageBoundObject):
         return f
 
     def context_processor(self, f):
-        """Like :meth:`Flask.context_processor` but for a modul.  This
+        """Like :meth:`Flask.context_processor` but for a module.  This
         function is only executed for requests handled by a module.
         """
         self._record(lambda s: s.app.template_context_processors
@@ -579,6 +614,141 @@ class Module(_PackageBoundObject):
 
     def _record(self, func):
         self._register_events.append(func)
+
+
+class ConfigAttribute(object):
+    """Makes an attribute forward to the config"""
+
+    def __init__(self, name):
+        self.__name__ = name
+
+    def __get__(self, obj, type=None):
+        if obj is None:
+            return self
+        return obj.config[self.__name__]
+
+    def __set__(self, obj, value):
+        obj.config[self.__name__] = value
+
+
+class Config(dict):
+    """Works exactly like a dict but provides ways to fill it from files
+    or special dictionaries.  There are two common patterns to populate the
+    config.
+
+    Either you can fill the config from a config file::
+
+        app.config.from_pyfile('yourconfig.cfg')
+
+    Or alternatively you can define the configuration options in the
+    module that calls :meth:`from_object` or provide an import path to
+    a module that should be loaded.  It is also possible to tell it to
+    use the same module and with that provide the configuration values
+    just before the call::
+
+        DEBUG = True
+        SECRET_KEY = 'development key'
+        app.config.from_object(__name__)
+
+    In both cases (loading from any Python file or loading from modules),
+    only uppercase keys are added to the config.  This makes it possible to use
+    lowercase values in the config file for temporary values that are not added
+    to the config or to define the config keys in the same file that implements
+    the application.
+
+    Probably the most interesting way to load configurations is from an
+    environment variable pointing to a file::
+
+        app.config.from_envvar('YOURAPPLICATION_SETTINGS')
+
+    In this case before launching the application you have to set this
+    environment variable to the file you want to use.  On Linux and OS X
+    use the export statement::
+
+        export YOURAPPLICATION_SETTINGS='/path/to/config/file'
+
+    On windows use `set` instead.
+
+    :param root_path: path to which files are read relative from.  When the
+                      config object is created by the application, this is
+                      the application's :attr:`~flask.Flask.root_path`.
+    :param defaults: an optional dictionary of default values
+    """
+
+    def __init__(self, root_path, defaults=None):
+        dict.__init__(self, defaults or {})
+        self.root_path = root_path
+
+    def from_envvar(self, variable_name, silent=False):
+        """Loads a configuration from an environment variable pointing to
+        a configuration file.  This basically is just a shortcut with nicer
+        error messages for this line of code::
+
+            app.config.from_pyfile(os.environ['YOURAPPLICATION_SETTINGS'])
+
+        :param variable_name: name of the environment variable
+        :param silent: set to `True` if you want silent failing for missing
+                       files.
+        :return: bool. `True` if able to load config, `False` otherwise.
+        """
+        rv = os.environ.get(variable_name)
+        if not rv:
+            if silent:
+                return False
+            raise RuntimeError('The environment variable %r is not set '
+                               'and as such configuration could not be '
+                               'loaded.  Set this variable and make it '
+                               'point to a configuration file' %
+                               variable_name)
+        self.from_pyfile(rv)
+        return True
+
+    def from_pyfile(self, filename):
+        """Updates the values in the config from a Python file.  This function
+        behaves as if the file was imported as module with the
+        :meth:`from_object` function.
+
+        :param filename: the filename of the config.  This can either be an
+                         absolute filename or a filename relative to the
+                         root path.
+        """
+        filename = os.path.join(self.root_path, filename)
+        d = type(sys)('config')
+        d.__file__ = filename
+        execfile(filename, d.__dict__)
+        self.from_object(d)
+
+    def from_object(self, obj):
+        """Updates the values from the given object.  An object can be of one
+        of the following two types:
+
+        -   a string: in this case the object with that name will be imported
+        -   an actual object reference: that object is used directly
+
+        Objects are usually either modules or classes.
+
+        Just the uppercase variables in that object are stored in the config
+        after lowercasing.  Example usage::
+
+            app.config.from_object('yourapplication.default_config')
+            from yourapplication import default_config
+            app.config.from_object(default_config)
+
+        You should not use this function to load the actual configuration but
+        rather configuration defaults.  The actual config should be loaded
+        with :meth:`from_pyfile` and ideally from a location not within the
+        package because the package might be installed system wide.
+
+        :param obj: an import name or object
+        """
+        if isinstance(obj, basestring):
+            obj = import_string(obj)
+        for key in dir(obj):
+            if key.isupper():
+                self[key] = getattr(obj, key)
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, dict.__repr__(self))
 
 
 class Flask(_PackageBoundObject):
@@ -601,7 +771,7 @@ class Flask(_PackageBoundObject):
         app = Flask(__name__)
     """
 
-    #: the class that is used for request objects.  See :class:`~flask.request`
+    #: the class that is used for request objects.  See :class:`~flask.Request`
     #: for more information.
     request_class = Request
 
@@ -614,25 +784,59 @@ class Flask(_PackageBoundObject):
     #: and the development server will no longer serve any static files.
     static_path = '/static'
 
+    #: the debug flag.  Set this to `True` to enable debugging of the
+    #: application.  In debug mode the debugger will kick in when an unhandled
+    #: exception ocurrs and the integrated server will automatically reload
+    #: the application if changes in the code are detected.
+    #:
+    #: This attribute can also be configured from the config with the `DEBUG`
+    #: configuration key.  Defaults to `False`.
+    debug = ConfigAttribute('DEBUG')
+
     #: if a secret key is set, cryptographic components can use this to
     #: sign cookies and other things.  Set this to a complex random value
     #: when you want to use the secure cookie for instance.
-    secret_key = None
+    #:
+    #: This attribute can also be configured from the config with the
+    #: `SECRET_KEY` configuration key.  Defaults to `None`.
+    secret_key = ConfigAttribute('SECRET_KEY')
 
     #: The secure cookie uses this for the name of the session cookie
-    session_cookie_name = 'session'
+    #:
+    #: This attribute can also be configured from the config with the
+    #: `SESSION_COOKIE_NAME` configuration key.  Defaults to ``'session'``
+    session_cookie_name = ConfigAttribute('SESSION_COOKIE_NAME')
 
     #: A :class:`~datetime.timedelta` which is used to set the expiration
     #: date of a permanent session.  The default is 31 days which makes a
     #: permanent session survive for roughly one month.
-    permanent_session_lifetime = timedelta(days=31)
+    #:
+    #: This attribute can also be configured from the config with the
+    #: `PERMANENT_SESSION_LIFETIME` configuration key.  Defaults to
+    #: ``timedelta(days=31)``
+    permanent_session_lifetime = ConfigAttribute('PERMANENT_SESSION_LIFETIME')
 
     #: Enable this if you want to use the X-Sendfile feature.  Keep in
     #: mind that the server has to support this.  This only affects files
     #: sent with the :func:`send_file` method.
     #:
     #: .. versionadded:: 0.2
-    use_x_sendfile = False
+    #:
+    #: This attribute can also be configured from the config with the
+    #: `USE_X_SENDFILE` configuration key.  Defaults to `False`.
+    use_x_sendfile = ConfigAttribute('USE_X_SENDFILE')
+
+    #: the logging format used for the debug logger.  This is only used when
+    #: the application is in debug mode, otherwise the attached logging
+    #: handler does the formatting.
+    #:
+    #: .. versionadded:: 0.3
+    debug_log_format = (
+        '-' * 80 + '\n' +
+        '%(levelname)s in %(module)s, %(pathname)s:%(lineno)d]:\n' +
+        '%(message)s\n' +
+        '-' * 80
+    )
 
     #: options that are passed directly to the Jinja2 environment
     jinja_options = ImmutableDict(
@@ -640,15 +844,22 @@ class Flask(_PackageBoundObject):
         extensions=['jinja2.ext.autoescape', 'jinja2.ext.with_']
     )
 
+    #: default configuration parameters
+    default_config = ImmutableDict({
+        'DEBUG':                                False,
+        'SECRET_KEY':                           None,
+        'SESSION_COOKIE_NAME':                  'session',
+        'PERMANENT_SESSION_LIFETIME':           timedelta(days=31),
+        'USE_X_SENDFILE':                       False
+    })
+
     def __init__(self, import_name):
         _PackageBoundObject.__init__(self, import_name)
 
-        #: the debug flag.  Set this to `True` to enable debugging of
-        #: the application.  In debug mode the debugger will kick in
-        #: when an unhandled exception ocurrs and the integrated server
-        #: will automatically reload the application if changes in the
-        #: code are detected.
-        self.debug = False
+        #: the configuration dictionary as :class:`Config`.  This behaves
+        #: exactly like a regular dictionary but supports additional methods
+        #: to load a config from files.
+        self.config = Config(self.root_path, self.default_config)
 
         #: a dictionary of all view functions registered.  The keys will
         #: be function names which are also used to generate URLs and
@@ -727,6 +938,31 @@ class Flask(_PackageBoundObject):
             get_flashed_messages=get_flashed_messages
         )
         self.jinja_env.filters['tojson'] = _tojson_filter
+
+    @cached_property
+    def logger(self):
+        """A :class:`logging.Logger` object for this application.  The
+        default configuration is to log to stderr if the application is
+        in debug mode.  This logger can be used to (surprise) log messages.
+        Here some examples::
+
+            app.logger.debug('A value for debugging')
+            app.logger.warning('A warning ocurred (%d apples)', 42)
+            app.logger.error('An error occoured')
+
+        .. versionadded:: 0.3
+        """
+        from logging import getLogger, StreamHandler, Formatter, DEBUG
+        class DebugHandler(StreamHandler):
+            def emit(x, record):
+                if self.debug:
+                    StreamHandler.emit(x, record)
+        handler = DebugHandler()
+        handler.setLevel(DEBUG)
+        handler.setFormatter(Formatter(self.debug_log_format))
+        logger = getLogger(self.import_name)
+        logger.addHandler(handler)
+        return logger
 
     def create_jinja_loader(self):
         """Creates the Jinja loader.  By default just a package loader for
@@ -935,14 +1171,14 @@ class Flask(_PackageBoundObject):
         error code.  Example::
 
             @app.errorhandler(404)
-            def page_not_found():
+            def page_not_found(error):
                 return 'This page does not exist', 404
 
         You can also register a function as error handler without using
         the :meth:`errorhandler` decorator.  The following example is
         equivalent to the one above::
 
-            def page_not_found():
+            def page_not_found(error):
                 return 'This page does not exist', 404
             app.error_handlers[404] = page_not_found
 
@@ -985,6 +1221,38 @@ class Flask(_PackageBoundObject):
         self.template_context_processors[None].append(f)
         return f
 
+    def handle_http_exception(self, e):
+        """Handles an HTTP exception.  By default this will invoke the
+        registered error handlers and fall back to returning the
+        exception as response.
+
+        .. versionadded: 0.3
+        """
+        handler = self.error_handlers.get(e.code)
+        if handler is None:
+            return e
+        return handler(e)
+
+    def handle_exception(self, e):
+        """Default exception handling that kicks in when an exception
+        occours that is not catched.  In debug mode the exception will
+        be re-raised immediately, otherwise it is logged an the handler
+        for an 500 internal server error is used.  If no such handler
+        exists, a default 500 internal server error message is displayed.
+
+        .. versionadded: 0.3
+        """
+        handler = self.error_handlers.get(500)
+        if self.debug:
+            raise
+        self.logger.exception('Exception on %s [%s]' % (
+            request.path,
+            request.method
+        ))
+        if handler is None:
+            return InternalServerError()
+        return handler(e)
+
     def dispatch_request(self):
         """Does the request dispatching.  Matches the URL and returns the
         return value of the view or error handler.  This does not have to
@@ -997,21 +1265,15 @@ class Flask(_PackageBoundObject):
                 raise req.routing_exception
             return self.view_functions[req.endpoint](**req.view_args)
         except HTTPException, e:
-            handler = self.error_handlers.get(e.code)
-            if handler is None:
-                return e
-            return handler(e)
-        except Exception, e:
-            handler = self.error_handlers.get(500)
-            if self.debug or handler is None:
-                raise
-            return handler(e)
+            return self.handle_http_exception(e)
 
     def make_response(self, rv):
         """Converts the return value from a view function to a real
         response object that is an instance of :attr:`response_class`.
 
         The following types are allowed for `rv`:
+
+        .. tabularcolumns:: |p{3.5cm}|p{9.5cm}|
 
         ======================= ===========================================
         :attr:`response_class`  the object is returned unchanged
@@ -1095,11 +1357,14 @@ class Flask(_PackageBoundObject):
                                exception context to start the response
         """
         with self.request_context(environ):
-            rv = self.preprocess_request()
-            if rv is None:
-                rv = self.dispatch_request()
-            response = self.make_response(rv)
-            response = self.process_response(response)
+            try:
+                rv = self.preprocess_request()
+                if rv is None:
+                    rv = self.dispatch_request()
+                response = self.make_response(rv)
+                response = self.process_response(response)
+            except Exception, e:
+                response = self.make_response(self.handle_exception(e))
             return response(environ, start_response)
 
     def request_context(self, environ):
@@ -1113,7 +1378,31 @@ class Flask(_PackageBoundObject):
             with app.request_context(environ):
                 do_something_with(request)
 
-        :params environ: a WSGI environment
+        The object returned can also be used without the `with` statement
+        which is useful for working in the shell.  The example above is
+        doing exactly the same as this code::
+
+            ctx = app.request_context(environ)
+            ctx.push()
+            try:
+                do_something_with(request)
+            finally:
+                ctx.pop()
+
+        The big advantage of this approach is that you can use it without
+        the try/finally statement in a shell for interactive testing:
+
+        >>> ctx = app.test_request_context()
+        >>> ctx.bind()
+        >>> request.path
+        u'/'
+        >>> ctx.unbind()
+
+        .. versionchanged:: 0.3
+           Added support for non-with statement usage and `with` statement
+           is now passed the ctx object.
+
+        :param environ: a WSGI environment
         """
         return _RequestContext(self, environ)
 
