@@ -38,20 +38,29 @@ by default:
 
    .. versionadded:: 0.6
 
+   .. versionchanged:: 0.10
+      This is now always available, even in imported templates.
+
 .. data:: request
    :noindex:
 
-   The current request object (:class:`flask.request`)
+   The current request object (:class:`flask.request`).  This variable is
+   unavailable if the template was rendered without an active request
+   context.
 
 .. data:: session
    :noindex:
 
-   The current session object (:class:`flask.session`)
+   The current session object (:class:`flask.session`).  This variable
+   is unavailable if the template was rendered without an active request
+   context.
 
 .. data:: g
    :noindex:
 
-   The request-bound object for global variables (:data:`flask.g`)
+   The request-bound object for global variables (:data:`flask.g`).  This
+   variable is unavailable if the template was rendered without an active
+   request context.
 
 .. function:: url_for
    :noindex:
@@ -97,16 +106,14 @@ by Jinja2 itself:
    fly.
 
    Note that inside `script` tags no escaping must take place, so make
-   sure to disable escaping with ``|safe`` if you intend to use it inside
-   `script` tags:
+   sure to disable escaping with ``|safe`` before Flask 0.10 if you intend
+   to use it inside `script` tags:
 
    .. sourcecode:: html+jinja
 
        <script type=text/javascript>
            doSomethingWith({{ user.username|tojson|safe }});
        </script>
-
-   That the ``|tojson`` filter escapes forward slashes properly for you.
 
 Controlling Autoescaping
 ------------------------
@@ -179,7 +186,7 @@ you have a Python list in context called `mylist`::
 Context Processors
 ------------------
 
-To inject new variables automatically into the context of a template
+To inject new variables automatically into the context of a template,
 context processors exist in Flask.  Context processors run before the
 template is rendered and have the ability to inject new values into the
 template context.  A context processor is a function that returns a
@@ -202,7 +209,7 @@ functions)::
     @app.context_processor
     def utility_processor():
         def format_price(amount, currency=u'€'):
-            return u'{0:.2f}{1}.format(amount, currency)
+            return u'{0:.2f}{1}'.format(amount, currency)
         return dict(format_price=format_price)
 
 The context processor above makes the `format_price` function available to all

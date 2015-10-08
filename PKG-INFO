@@ -1,6 +1,6 @@
-Metadata-Version: 1.1
+Metadata-Version: 1.0
 Name: Flask
-Version: 0.9
+Version: 0.10.1
 Summary: A microframework based on Werkzeug, Jinja2 and good intentions
 Home-page: http://github.com/mitsuhiko/flask/
 Author: Armin Ronacher
@@ -16,7 +16,7 @@ Description:
         Flask is Fun
         ````````````
         
-        ::
+        .. code:: python
         
             from flask import Flask
             app = Flask(__name__)
@@ -31,7 +31,7 @@ Description:
         And Easy to Setup
         `````````````````
         
-        ::
+        .. code:: bash
         
             $ pip install Flask
             $ python hello.py
@@ -53,8 +53,6 @@ Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: BSD License
 Classifier: Operating System :: OS Independent
 Classifier: Programming Language :: Python
-Classifier: Programming Language :: Python :: 2.5
-Classifier: Programming Language :: Python :: 2.6
-Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
 Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
