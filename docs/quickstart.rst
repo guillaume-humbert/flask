@@ -38,7 +38,12 @@ see your hello world greeting.
 So what did that code do?
 
 1. first we imported the :class:`~flask.Flask` class.  An instance of this
-   class will be our WSGI application.
+   class will be our WSGI application.  The first argument is the name of
+   the application's module.  If you are using a single module (like here)
+   you should use `__name__` because depending on if it's started as
+   application or imported as module the name will be different
+   (``'__main__'`` versus the actual import name).  For more information
+   on that, have a look at the :class:`~flask.Flask` documentation.
 2. next we create an instance of it.  We pass it the name of the module /
    package.  This is needed so that Flask knows where it should look for
    templates, static files and so on.
@@ -409,6 +414,13 @@ Markup(u'&lt;blink&gt;hacker&lt;/blink&gt;')
 >>> Markup('<em>Marked up</em> &raquo; HTML').striptags()
 u'Marked up \xbb HTML'
 
+.. versionchanged:: 0.5
+
+   Autoescaping is no longer enabled for all templates.  The following
+   extensions for templates trigger autoescaping: ``.html``, ``.htm``,
+   ``.xml``, ``.xhtml``.  Templates loaded from string will have
+   autoescaping disabled.
+
 .. [#] Unsure what that :class:`~flask.g` object is? It's something you
    can store information on yourself, check the documentation of that
    object (:class:`~flask.g`) and the :ref:`sqlite3` for more
@@ -628,7 +640,9 @@ unless he knows the secret key used for signing.
 In order to use sessions you have to set a secret key.  Here is how
 sessions work::
 
-    from flask import session, redirect, url_for, escape
+    from flask import Flask, session, redirect, url_for, escape, request
+
+    app = Flask(__name__)
 
     @app.route('/')
     def index():
@@ -652,6 +666,7 @@ sessions work::
     def logout():
         # remove the username from the session if its there
         session.pop('username', None)
+        return redirect(url_for('index'))
 
     # set the secret key.  keep this really secret:
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'

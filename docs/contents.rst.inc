@@ -1,9 +1,9 @@
 User's Guide
 ------------
 
-This part of the documentation is written text and should give you an idea
-how to work with Flask.  It's a series of step-by-step instructions for
-web development.
+This part of the documentation, which is mostly prose, begins with some
+background information about Flask, then focuses on step-by-step
+instructions for web development with Flask.
 
 .. toctree::
    :maxdepth: 2
@@ -44,6 +44,6 @@ Design notes, legal information and changelog are here for the interested.
    security
    unicode
    extensiondev
-   license
    upgrading
    changelog
+   license

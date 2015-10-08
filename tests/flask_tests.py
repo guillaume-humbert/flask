@@ -20,8 +20,9 @@ from logging import StreamHandler
 from contextlib import contextmanager
 from datetime import datetime
 from werkzeug import parse_date, parse_options_header
+from werkzeug.exceptions import NotFound
+from jinja2 import TemplateNotFound
 from cStringIO import StringIO
-
 
 example_path = os.path.join(os.path.dirname(__file__), '..', 'examples')
 sys.path.append(os.path.join(example_path, 'flaskr'))
@@ -171,6 +172,20 @@ class BasicFunctionalityTestCase(unittest.TestCase):
         c = app.test_client()
         assert c.post('/set', data={'value': '42'}).data == 'value set'
         assert c.get('/get').data == '42'
+
+    def test_session_using_server_name(self):
+        app = flask.Flask(__name__)
+        app.config.update(
+            SECRET_KEY='foo',
+            SERVER_NAME='example.com'
+        )
+        @app.route('/')
+        def index():
+            flask.session['testing'] = 42
+            return 'Hello World'
+        rv = app.test_client().get('/', 'http://example.com/')
+        assert 'domain=.example.com' in rv.headers['set-cookie'].lower()
+        assert 'httponly' in rv.headers['set-cookie'].lower()
 
     def test_missing_session(self):
         app = flask.Flask(__name__)
@@ -461,6 +476,14 @@ class TemplatingTestCase(unittest.TestCase):
             '<p>Hello World!'
         ]
 
+    def test_no_escaping(self):
+        app = flask.Flask(__name__)
+        with app.test_request_context():
+            assert flask.render_template_string('{{ foo }}',
+                foo='<test>') == '<test>'
+            assert flask.render_template('mail.txt', foo='<test>') \
+                == '<test> Mail'
+
     def test_macros(self):
         app = flask.Flask(__name__)
         with app.test_request_context():
@@ -622,6 +645,53 @@ class ModuleTestCase(unittest.TestCase):
         rv = c.get('/error')
         assert rv.status_code == 500
         assert 'internal server error' == rv.data
+
+    def test_templates_and_static(self):
+        from moduleapp import app
+        c = app.test_client()
+
+        rv = c.get('/')
+        assert rv.data == 'Hello from the Frontend'
+        rv = c.get('/admin/')
+        assert rv.data == 'Hello from the Admin'
+        rv = c.get('/admin/static/test.txt')
+        assert rv.data.strip() == 'Admin File'
+        rv = c.get('/admin/static/css/test.css')
+        assert rv.data.strip() == '/* nested file */'
+
+        with app.test_request_context():
+            assert flask.url_for('admin.static', filename='test.txt') \
+                == '/admin/static/test.txt'
+
+        with app.test_request_context():
+            try:
+                flask.render_template('missing.html')
+            except TemplateNotFound, e:
+                assert e.name == 'missing.html'
+            else:
+                assert 0, 'expected exception'
+
+        with flask.Flask(__name__).test_request_context():
+            assert flask.render_template('nested/nested.txt') == 'I\'m nested'
+
+    def test_safe_access(self):
+        from moduleapp import app
+
+        with app.test_request_context():
+            f = app.view_functions['admin.static']
+
+            try:
+                rv = f('/etc/passwd')
+            except NotFound:
+                pass
+            else:
+                assert 0, 'expected exception'
+            try:
+                rv = f('../__init__.py')
+            except NotFound:
+                pass
+            else:
+                assert 0, 'expected exception'
 
 
 class SendfileTestCase(unittest.TestCase):
@@ -836,6 +906,37 @@ class ConfigTestCase(unittest.TestCase):
             os.environ = env
 
 
+class SubdomainTestCase(unittest.TestCase):
+
+    def test_basic_support(self):
+        app = flask.Flask(__name__)
+        app.config['SERVER_NAME'] = 'localhost'
+        @app.route('/')
+        def normal_index():
+            return 'normal index'
+        @app.route('/', subdomain='test')
+        def test_index():
+            return 'test index'
+
+        c = app.test_client()
+        rv = c.get('/', 'http://localhost/')
+        assert rv.data == 'normal index'
+
+        rv = c.get('/', 'http://test.localhost/')
+        assert rv.data == 'test index'
+
+    def test_subdomain_matching(self):
+        app = flask.Flask(__name__)
+        app.config['SERVER_NAME'] = 'localhost'
+        @app.route('/', subdomain='<user>')
+        def index(user):
+            return 'index for %s' % user
+
+        c = app.test_client()
+        rv = c.get('/', 'http://mitsuhiko.localhost/')
+        assert rv.data == 'index for mitsuhiko'
+
+
 def suite():
     from minitwit_tests import MiniTwitTestCase
     from flaskr_tests import FlaskrTestCase
@@ -847,6 +948,7 @@ def suite():
     suite.addTest(unittest.makeSuite(SendfileTestCase))
     suite.addTest(unittest.makeSuite(LoggingTestCase))
     suite.addTest(unittest.makeSuite(ConfigTestCase))
+    suite.addTest(unittest.makeSuite(SubdomainTestCase))
     if flask.json_available:
         suite.addTest(unittest.makeSuite(JSONTestCase))
     suite.addTest(unittest.makeSuite(MiniTwitTestCase))

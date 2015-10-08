@@ -50,7 +50,7 @@ def run_tests():
 
 setup(
     name='Flask',
-    version='0.4',
+    version='0.5.1',
     url='http://github.com/mitsuhiko/flask/',
     license='BSD',
     author='Armin Ronacher',
@@ -58,7 +58,7 @@ setup(
     description='A microframework based on Werkzeug, Jinja2 '
                 'and good intentions',
     long_description=__doc__,
-    py_modules=['flask'],
+    packages=['flask'],
     zip_safe=False,
     platforms='any',
     install_requires=[
