@@ -269,7 +269,8 @@ If `GET` is present, `HEAD` will be added automatically for you.  You
 don't have to deal with that.  It will also make sure that `HEAD` requests
 are handled like the `HTTP RFC`_ (the document describing the HTTP
 protocol) demands, so you can completely ignore that part of the HTTP
-specification.
+specification.  Likewise as of Flask 0.6, `OPTIONS` is implemented for you
+as well automatically.
 
 You have no idea what an HTTP method is?  Worry not, here quick
 introduction in HTTP methods and why they matter:
@@ -309,6 +310,11 @@ very common:
 
 `DELETE`
     Remove the information that the given location.
+
+`OPTIONS`
+    Provides a quick way for a requesting client to figure out which
+    methods are supported by this URL.  Starting with Flask 0.6, this
+    is implemented for you automatically.
 
 Now the interesting part is that in HTML4 and XHTML1, the only methods a
 form might submit to the server are `GET` and `POST`.  But with JavaScript
@@ -373,7 +379,8 @@ package it's actually inside your package:
             /hello.html
 
 For templates you can use the full power of Jinja2 templates.  Head over
-to the `Jinja2 Template Documentation
+to the :ref:`templating` section of the documentation or the official
+`Jinja2 Template Documentation
 <http://jinja.pocoo.org/2/documentation/templates>`_ for more information.
 
 Here an example template:
@@ -728,3 +735,14 @@ Here are some example log calls::
 The attached :attr:`~flask.Flask.logger` is a standard logging
 :class:`~logging.Logger`, so head over to the official stdlib
 documentation for more information.
+
+Hooking in WSGI Middlewares
+---------------------------
+
+If you want to add a WSGI middleware to your application you can wrap the
+internal WSGI application.  For example if you want to use one of the
+middlewares from the Werkzeug package to work around bugs in lighttpd, you
+can do it like this::
+
+    from werkzeug.contrib.fixers import LighttpdCGIRootFix
+    app.wsgi_app = LighttpdCGIRootFix(app.wsgi_app)

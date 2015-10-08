@@ -8,9 +8,10 @@
     :copyright: (c) 2010 by Armin Ronacher.
     :license: BSD, see LICENSE for more details.
 """
-from jinja2 import BaseLoader, FileSystemLoader, TemplateNotFound
+from jinja2 import BaseLoader, TemplateNotFound
 
 from .globals import _request_ctx_stack
+from .signals import template_rendered
 
 
 def _default_template_ctx_processor():
@@ -19,6 +20,7 @@ def _default_template_ctx_processor():
     """
     reqctx = _request_ctx_stack.top
     return dict(
+        config=reqctx.app.config,
         request=reqctx.request,
         session=reqctx.session,
         g=reqctx.g
@@ -46,11 +48,6 @@ class _DispatchingJinjaLoader(BaseLoader):
                 return loader.get_source(environment, name)
             except TemplateNotFound:
                 pass
-
-        # in 0.5.*, the loader of the application can be None
-        if self.app.jinja_loader is None:
-            raise TemplateNotFound(template)
-
         # fall back to application loader if module failed
         return self.app.jinja_loader.get_source(environment, template)
 
@@ -63,6 +60,13 @@ class _DispatchingJinjaLoader(BaseLoader):
         return result
 
 
+def _render(template, context, app):
+    """Renders the template and fires the signal"""
+    rv = template.render(context)
+    template_rendered.send(app, template=template, context=context)
+    return rv
+
+
 def render_template(template_name, **context):
     """Renders a template from the template folder with the given
     context.
@@ -73,7 +77,8 @@ def render_template(template_name, **context):
     """
     ctx = _request_ctx_stack.top
     ctx.app.update_template_context(context)
-    return ctx.app.jinja_env.get_template(template_name).render(context)
+    return _render(ctx.app.jinja_env.get_template(template_name),
+                   context, ctx.app)
 
 
 def render_template_string(source, **context):
@@ -87,4 +92,5 @@ def render_template_string(source, **context):
     """
     ctx = _request_ctx_stack.top
     ctx.app.update_template_context(context)
-    return ctx.app.jinja_env.from_string(source).render(context)
+    return _render(ctx.app.jinja_env.from_string(source),
+                   context, ctx.app)
