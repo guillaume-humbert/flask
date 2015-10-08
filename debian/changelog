@@ -1,18 +1,10 @@
-flask (0.10.1-2~bpo70+1) wheezy-backports; urgency=medium
-
-  * Rebuild for wheezy-backports.
-  * Drop python3-flask package (requires Python 3.3 which is not available in
-    Wheezy)
-
- -- Piotr Ożarowski <piotr@debian.org>  Thu, 18 Dec 2014 13:19:16 +0100
-
 flask (0.10.1-2) unstable; urgency=low
 
   * Add python3-flask binary package
   * Add python-blinker to Recommends (used in flask.signals)
   * Switch to pybuild buildsystem
   * Add fix_test_appcontext_signals and fix_test_json_key_sorting patches
-    and enable tests at build time (patches taked from upstream repo)
+    and enable tests at build time (patches taken from upstream repo)
 
  -- Piotr Ożarowski <piotr@debian.org>  Thu, 08 Aug 2013 22:19:13 +0200
 
