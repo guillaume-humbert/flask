@@ -3,6 +3,9 @@ flask (0.10.1-3) UNRELEASED; urgency=medium
   * Fixed VCS URL (https)
   * Bumped Standards-Version to 3.9.8 (no changes needed)
   * Use extend-diff-ignore for egg-info instead of removing it
+  * d/copyright
+    - Converted to DEP5 format
+    - Added myself for Debian part
 
  -- Ondřej Nový <novy@ondrej.org>  Tue, 29 Mar 2016 21:36:03 +0200
 
