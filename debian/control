@@ -9,8 +9,9 @@ Build-Depends: debhelper (>= 9), dh-python,
  python-click, python3-click,
 # for docs:
  python-sphinx (>= 1.0.7+dfsg),
- python-werkzeug (>= 0.8), python-jinja2, python-itsdangerous,
 # for tests:
+ python-pytest, python3-pytest,
+ python-werkzeug (>= 0.8), python-jinja2, python-itsdangerous,
  python3-werkzeug, python3-jinja2, python3-itsdangerous,
  python-simplejson, python3-simplejson,
  python-blinker
