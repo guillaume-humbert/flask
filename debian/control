@@ -20,6 +20,7 @@ Vcs-Browser: https://anonscm.debian.org/cgit/python-modules/packages/flask.git
 Homepage: http://flask.pocoo.org/
 X-Python-Version: >= 2.6
 X-Python3-Version: >= 3.3
+Testsuite: autopkgtest-pkg-python
 
 Package: python-flask
 Architecture: all

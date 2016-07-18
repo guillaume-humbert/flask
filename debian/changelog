@@ -12,6 +12,7 @@ flask (0.11.1-1) UNRELEASED; urgency=medium
     - d/p/fix_test_json_key_sorting.patch
   * Added python{3,}-click to build depends
   * Bumped required Python 2 version to 2.6
+  * Enabled autopkgtest-pkg-python testsuite
 
  -- Ondřej Nový <novy@ondrej.org>  Tue, 29 Mar 2016 21:36:03 +0200
 
