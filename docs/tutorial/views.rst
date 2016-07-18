@@ -3,7 +3,7 @@
 Step 5: The View Functions
 ==========================
 
-Now that the database connections are working we can start writing the
+Now that the database connections are working, we can start writing the
 view functions.  We will need four of them:
 
 Show Entries
@@ -12,26 +12,25 @@ Show Entries
 This view shows all the entries stored in the database.  It listens on the
 root of the application and will select title and text from the database.
 The one with the highest id (the newest entry) will be on top.  The rows
-returned from the cursor are tuples with the columns ordered like specified
-in the select statement.  This is good enough for small applications like
-here, but you might want to convert them into a dict.  If you are
-interested in how to do that, check out the :ref:`easy-querying` example.
+returned from the cursor look a bit like dictionaries because we are using
+the :class:`sqlite3.Row` row factory.
 
-The view function will pass the entries as dicts to the
-`show_entries.html` template and return the rendered one::
+The view function will pass the entries to the :file:`show_entries.html`
+template and return the rendered one::
 
     @app.route('/')
     def show_entries():
-        cur = g.db.execute('select title, text from entries order by id desc')
-        entries = [dict(title=row[0], text=row[1]) for row in cur.fetchall()]
+        db = get_db()
+        cur = db.execute('select title, text from entries order by id desc')
+        entries = cur.fetchall()
         return render_template('show_entries.html', entries=entries)
 
 Add New Entry
 -------------
 
 This view lets the user add new entries if they are logged in.  This only
-responds to `POST` requests, the actual form is shown on the
-`show_entries` page.  If everything worked out well we will
+responds to ``POST`` requests; the actual form is shown on the
+`show_entries` page.  If everything worked out well, we will
 :func:`~flask.flash` an information message to the next request and
 redirect back to the `show_entries` page::
 
@@ -39,14 +38,15 @@ redirect back to the `show_entries` page::
     def add_entry():
         if not session.get('logged_in'):
             abort(401)
-        g.db.execute('insert into entries (title, text) values (?, ?)',
+        db = get_db()
+        db.execute('insert into entries (title, text) values (?, ?)',
                      [request.form['title'], request.form['text']])
-        g.db.commit()
+        db.commit()
         flash('New entry was successfully posted')
         return redirect(url_for('show_entries'))
 
 Note that we check that the user is logged in here (the `logged_in` key is
-present in the session and `True`).
+present in the session and ``True``).
 
 .. admonition:: Security Note
 
@@ -60,8 +60,8 @@ Login and Logout
 
 These functions are used to sign the user in and out.  Login checks the
 username and password against the ones from the configuration and sets the
-`logged_in` key in the session.  If the user logged in successfully, that
-key is set to `True`, and the user is redirected back to the `show_entries`
+`logged_in` key for the session.  If the user logged in successfully, that
+key is set to ``True``, and the user is redirected back to the `show_entries`
 page.  In addition, a message is flashed that informs the user that he or
 she was logged in successfully.  If an error occurred, the template is
 notified about that, and the user is asked again::
@@ -80,7 +80,7 @@ notified about that, and the user is asked again::
                 return redirect(url_for('show_entries'))
         return render_template('login.html', error=error)
 
-The logout function, on the other hand, removes that key from the session
+The `logout` function, on the other hand, removes that key from the session
 again.  We use a neat trick here: if you use the :meth:`~dict.pop` method
 of the dict and pass a second parameter to it (the default), the method
 will delete the key from the dictionary if present or do nothing when that
@@ -94,5 +94,11 @@ if the user was logged in.
         session.pop('logged_in', None)
         flash('You were logged out')
         return redirect(url_for('show_entries'))
+        
+Note that it is not a good idea to store passwords in plain text. You want to
+protect login credentials if someone happens to have access to your database.
+One way to do this is to use Security Helpers from Werkzeug to hash the
+password. However, the emphasis of this tutorial is to demonstrate the basics
+of Flask and plain text passwords are used for simplicity.
 
 Continue with :ref:`tutorial-templates`.
