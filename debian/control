@@ -29,7 +29,7 @@ Depends: ${python:Depends}, ${misc:Depends}
 Recommends: python-pkg-resources, python-simplejson | python (>= 2.6),
  python-blinker
 Suggests: python-flask-doc
-Description: micro web framework based on Werkzeug, Jinja2 and good intentions
+Description: micro web framework based on Werkzeug and Jinja2 - Python 2.7
  Flask is a micro web framework for Python based on Werkzeug, Jinja 2 and good
  intentions. A minimal Flask application looks like that:
  .
@@ -42,13 +42,15 @@ Description: micro web framework based on Werkzeug, Jinja2 and good intentions
  .
    if __name__ == '__main__':
        app.run()
+ .
+ This package contains the Python 2.7 module.
 
 Package: python3-flask
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends}
 Recommends: python3-pkg-resources, python3-simplejson | python3
 Suggests: python-flask-doc
-Description: micro web framework based on Werkzeug, Jinja2 and good intentions
+Description: micro web framework based on Werkzeug and Jinja2 - Python 3.x
  Flask is a micro web framework for Python based on Werkzeug, Jinja 2 and good
  intentions. A minimal Flask application looks like that:
  .
@@ -61,6 +63,8 @@ Description: micro web framework based on Werkzeug, Jinja2 and good intentions
  .
    if __name__ == '__main__':
        app.run()
+ .
+ This package contains the Python 3.x module.
 
 Package: python-flask-doc
 Section: doc
