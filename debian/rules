@@ -18,8 +18,3 @@ ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
 	PYTHONPATH=. sphinx-build -N -q -E -b html docs/ debian/python-flask-doc/usr/share/doc/python-flask-doc/html/
 	dh_sphinxdoc
 endif
-
-override_dh_auto_clean:
-	dh_auto_clean
-	rm -rf build
-	find . \( -name '*.py[co]' -or -name '\._*' -or -name '\.DS_Store' \) -delete
