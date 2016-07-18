@@ -6,14 +6,12 @@ Uploaders: Debian Python Modules Team <python-modules-team@lists.alioth.debian.o
 Build-Depends: debhelper (>= 9), dh-python (>= 2.20160609~),
  python-all, python3-all,
  python-setuptools, python3-setuptools,
- python-click, python3-click,
 # for docs:
  python-sphinx,
 # for tests:
  python-pytest, python3-pytest,
- python-werkzeug, python-jinja2, python-itsdangerous,
- python3-werkzeug, python3-jinja2, python3-itsdangerous,
- python-blinker, python3-blinker
+ python-werkzeug, python-jinja2, python-itsdangerous, python-blinker, python-click,
+ python3-werkzeug, python3-jinja2, python3-itsdangerous, python3-blinker, python3-click,
 Standards-Version: 3.9.8
 Vcs-Git: https://anonscm.debian.org/git/python-modules/packages/flask.git
 Vcs-Browser: https://anonscm.debian.org/cgit/python-modules/packages/flask.git
