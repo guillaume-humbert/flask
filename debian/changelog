@@ -18,6 +18,7 @@ flask (0.11.1-1) UNRELEASED; urgency=medium
   * Use LC_ALL=C.UTF-8 when running tests, Click is failing on non UTF-8
     locale
   * Bumped required version of dh-python to 2.20160609~
+  * Added /usr/share/doc/python-flask-doc/rst symlink
 
  -- Ondřej Nový <novy@ondrej.org>  Tue, 29 Mar 2016 21:36:03 +0200
 
