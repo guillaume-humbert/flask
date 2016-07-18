@@ -9,6 +9,12 @@ export PYBUILD_DESTDIR_python3=debian/python3-flask/
 override_dh_auto_test:
 	LC_ALL=C.UTF-8 http_proxy='' dh_auto_test
 
+override_dh_install:
+	dh_install
+
+	mv $(CURDIR)/debian/python-flask/usr/bin/flask $(CURDIR)/debian/python-flask/usr/bin/python2-flask
+	mv $(CURDIR)/debian/python3-flask/usr/bin/flask $(CURDIR)/debian/python3-flask/usr/bin/python3-flask
+
 override_dh_sphinxdoc:
 ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
 	PYTHONPATH=. sphinx-build -N -q -E -b html docs/ debian/python-flask-doc/usr/share/doc/python-flask-doc/html/
