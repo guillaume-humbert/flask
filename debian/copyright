@@ -7,7 +7,7 @@ Copyright: (c) 2013, Armin Ronacher and contributors. See AUTHORS
 License: BSD-3-clause
 
 Files: debian/*
-Copyright: (c) 2010-2013, Piotr Ożarowski <piotr@debian.org>
+Copyright: (c) 2010-2016, Piotr Ożarowski <piotr@debian.org>
            (c) 2016 Ondřej Nový <onovy@debian.org>
 License: BSD-3-clause
 

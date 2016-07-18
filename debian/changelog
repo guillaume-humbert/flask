@@ -1,5 +1,6 @@
 flask (0.11.1-1) UNRELEASED; urgency=medium
 
+  [ Ondřej Nový ]
   * New upstream release
   * Fixed VCS URL (https)
   * Bumped Standards-Version to 3.9.8 (no changes needed)
@@ -27,7 +28,7 @@ flask (0.11.1-1) UNRELEASED; urgency=medium
   * Added python3-blinker to build-depends/recommends
   * Removed d/python-flask.pyremove (not needed)
 
- -- Ondřej Nový <novy@ondrej.org>  Tue, 29 Mar 2016 21:36:03 +0200
+ -- Piotr Ożarowski <piotr@debian.org>  Mon, 18 Jul 2016 22:29:28 +0200
 
 flask (0.10.1-2) unstable; urgency=low
 
