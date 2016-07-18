@@ -19,5 +19,5 @@ override_dh_installdocs:
 
 override_dh_auto_clean:
 	dh_auto_clean
-	rm -rf Flask.egg-info/ build
+	rm -rf build
 	find . \( -name '*.py[co]' -or -name '\._*' -or -name '\.DS_Store' \) -delete
