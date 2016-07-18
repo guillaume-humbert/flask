@@ -28,6 +28,9 @@ flask (0.11.1-1) UNRELEASED; urgency=medium
   * Added python3-blinker to build-depends/recommends
   * Removed d/python-flask.pyremove (not needed)
 
+  [ Piotr Ożarowski ]
+  * Make sure sphinx-build doesn't access network
+
  -- Piotr Ożarowski <piotr@debian.org>  Mon, 18 Jul 2016 22:29:28 +0200
 
 flask (0.10.1-2) unstable; urgency=low
