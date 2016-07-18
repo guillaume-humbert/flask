@@ -19,7 +19,7 @@ flask (0.11.1-1) UNRELEASED; urgency=medium
     locale
   * Bumped required version of dh-python to 2.20160609~
   * Added /usr/share/doc/python-flask-doc/rst symlink
-  * Removed override_dh_auto_clean (not needed)
+  * Removed override_dh_auto_clean and override_dh_python3 (not needed)
 
  -- Ondřej Nový <novy@ondrej.org>  Tue, 29 Mar 2016 21:36:03 +0200
 
