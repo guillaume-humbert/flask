@@ -22,6 +22,7 @@ flask (0.11.1-1) UNRELEASED; urgency=medium
   * Removed override_dh_auto_clean and override_dh_python3 (not needed)
   * Use update-alternatives for /usr/bin/flask CLI
   * Make python-flask and python3-flask descriptions distinct
+  * Removed all pre-wheezy version compare from dependency
 
  -- Ondřej Nový <novy@ondrej.org>  Tue, 29 Mar 2016 21:36:03 +0200
 
