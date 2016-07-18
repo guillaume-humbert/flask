@@ -10,6 +10,7 @@ flask (0.11.1-1) UNRELEASED; urgency=medium
   * Removed patches applied upstream:
     - d/p/fix_test_appcontext_signals.patch
     - d/p/fix_test_json_key_sorting.patch
+  * Added python{3,}-click to build depends
 
  -- Ondřej Nový <novy@ondrej.org>  Tue, 29 Mar 2016 21:36:03 +0200
 
