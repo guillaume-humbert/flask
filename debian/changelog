@@ -21,7 +21,7 @@ flask (0.11.1-1) UNRELEASED; urgency=medium
   * Bumped required version of dh-python to 2.20160609~
   * Added /usr/share/doc/python-flask-doc/rst symlink
   * Removed override_dh_auto_clean and override_dh_python3 (not needed)
-  * Use update-alternatives for /usr/bin/flask CLI
+  * Install /usr/bin/flask CLI only to python3-flask package
   * Make python-flask and python3-flask descriptions distinct
   * Removed all pre-wheezy version compare from dependency
   * Removed python-simplejson from build-depends/recommends

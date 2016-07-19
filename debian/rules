@@ -11,8 +11,7 @@ override_dh_auto_test:
 override_dh_install:
 	dh_install
 
-	mv $(CURDIR)/debian/python-flask/usr/bin/flask $(CURDIR)/debian/python-flask/usr/bin/python2-flask
-	mv $(CURDIR)/debian/python3-flask/usr/bin/flask $(CURDIR)/debian/python3-flask/usr/bin/python3-flask
+	rm $(CURDIR)/debian/python-flask/usr/bin/flask
 
 override_dh_sphinxdoc:
 ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
