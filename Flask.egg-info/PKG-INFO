@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: Flask
-Version: 0.11.1
+Version: 0.12
 Summary: A microframework based on Werkzeug, Jinja2 and good intentions
 Home-page: http://github.com/pallets/flask/
 Author: Armin Ronacher
@@ -40,6 +40,8 @@ Description:
             $ pip install Flask
             $ python hello.py
              * Running on http://localhost:5000/
+        
+         Ready for production? `Read this first <http://flask.pocoo.org/docs/deploying/>`.
         
         Links
         `````
