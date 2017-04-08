@@ -122,11 +122,17 @@ examples/blueprintexample/simple_page/templates/pages/world.html
 examples/flaskr/.gitignore
 examples/flaskr/MANIFEST.in
 examples/flaskr/README
+examples/flaskr/pytest_runner-2.11.1-py2.7.egg
 examples/flaskr/setup.cfg
 examples/flaskr/setup.py
 examples/flaskr/flaskr/__init__.py
 examples/flaskr/flaskr/flaskr.py
 examples/flaskr/flaskr/schema.sql
+examples/flaskr/flaskr.egg-info/PKG-INFO
+examples/flaskr/flaskr.egg-info/SOURCES.txt
+examples/flaskr/flaskr.egg-info/dependency_links.txt
+examples/flaskr/flaskr.egg-info/requires.txt
+examples/flaskr/flaskr.egg-info/top_level.txt
 examples/flaskr/flaskr/static/style.css
 examples/flaskr/flaskr/templates/layout.html
 examples/flaskr/flaskr/templates/login.html
@@ -143,6 +149,11 @@ examples/minitwit/setup.py
 examples/minitwit/minitwit/__init__.py
 examples/minitwit/minitwit/minitwit.py
 examples/minitwit/minitwit/schema.sql
+examples/minitwit/minitwit.egg-info/PKG-INFO
+examples/minitwit/minitwit.egg-info/SOURCES.txt
+examples/minitwit/minitwit.egg-info/dependency_links.txt
+examples/minitwit/minitwit.egg-info/requires.txt
+examples/minitwit/minitwit.egg-info/top_level.txt
 examples/minitwit/minitwit/static/style.css
 examples/minitwit/minitwit/templates/layout.html
 examples/minitwit/minitwit/templates/login.html
@@ -209,6 +220,7 @@ tests/test_apps/blueprintapp/apps/frontend/__init__.py
 tests/test_apps/blueprintapp/apps/frontend/templates/frontend/index.html
 tests/test_apps/cliapp/__init__.py
 tests/test_apps/cliapp/app.py
+tests/test_apps/cliapp/importerrorapp.py
 tests/test_apps/cliapp/multiapp.py
 tests/test_apps/subdomaintestmodule/__init__.py
 tests/test_apps/subdomaintestmodule/static/hello.txt

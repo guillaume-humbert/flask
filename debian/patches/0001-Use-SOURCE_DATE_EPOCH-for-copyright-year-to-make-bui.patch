@@ -1,4 +1,4 @@
-From 0c0b1484f295f248f6c646b410d41674fa32f529 Mon Sep 17 00:00:00 2001
+From 02ae596d3b6eb5e3c4fe1d938dbd86cee32f5b52 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Ond=C5=99ej=20Nov=C3=BD?= <onovy@debian.org>
 Date: Fri, 13 Jan 2017 10:46:21 +0100
 Subject: Use SOURCE_DATE_EPOCH for copyright year to make build reproducible
