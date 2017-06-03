@@ -2,10 +2,10 @@
 02ae596d3b6eb5e3c4fe1d938dbd86cee32f5b52
 02ae596d3b6eb5e3c4fe1d938dbd86cee32f5b52
 e2758a2dfc6ebddb68ccdfd8d3fa4cdd1a5ff03e
-e2758a2dfc6ebddb68ccdfd8d3fa4cdd1a5ff03e
-flask_0.12.1.orig.tar.gz
-b32d88f36f7a7d262eb6a336b4f0736cfa2a4252
-548511
+846a463e9be7e6e5bfb1fabbed465308171aca54
+flask_0.12.2.orig.tar.gz
+8193757ded6a4f0e7c9a3ce291bf3ae3a1d402c5
+548510
 debianTag="debian/%e%v"
 patchedTag="patched/%e%v"
 upstreamTag="upstream/%e%u"
