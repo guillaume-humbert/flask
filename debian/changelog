@@ -1,6 +1,7 @@
 flask (0.12.2-1) unstable; urgency=medium
 
   * New upstream bugfix release
+  * d/control: Cleanup long description of python-flask-doc
 
  -- Ondřej Nový <onovy@debian.org>  Tue, 20 Jun 2017 19:26:05 +0200
 

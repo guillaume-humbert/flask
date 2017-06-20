@@ -71,7 +71,18 @@ Architecture: all
 Priority: extra
 Depends: ${misc:Depends}, ${sphinxdoc:Depends}
 Recommends: python-flask
-Description: documentation for Flask micro web framework
- Flask is a Python micro web framework based on Werkzeug and Jinja2
+Description: micro web framework based on Werkzeug and Jinja2 - documentation
+ Flask is a micro web framework for Python based on Werkzeug, Jinja 2 and good
+ intentions. A minimal Flask application looks like that:
  .
- This package contains the documentation for Flask
+   from flask import Flask
+   app = Flask(__name__)
+ .
+   @app.route("/")
+   def hello():
+       return "Hello World!"
+ .
+   if __name__ == '__main__':
+       app.run()
+ .
+ This package contains the documentation for Flask.
