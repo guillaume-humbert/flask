@@ -1,9 +1,9 @@
-flask (0.12.2-2) UNRELEASED; urgency=medium
+flask (0.12.2-2) unstable; urgency=medium
 
   * Added Python 3.6 support for tests (Closes: #867482)
   * Standards-Version is 4.0.0.4 now (no changes needed)
 
- -- Ondřej Nový <onovy@debian.org>  Sun, 09 Jul 2017 18:30:36 +0200
+ -- Ondřej Nový <onovy@debian.org>  Sun, 09 Jul 2017 18:36:07 +0200
 
 flask (0.12.2-1) unstable; urgency=medium
 
