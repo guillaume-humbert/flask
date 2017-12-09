@@ -142,7 +142,7 @@ flask (0.6.1-2) unstable; urgency=low
 
   * Provide flaskext namespace
   * Build depend on python-all to make sure dh will invoke setup.py install
-    for all supported Python versions (and thus avoid dh_python2's 
+    for all supported Python versions (and thus avoid dh_python2's
     .pyinstall vs. guess_versions race)
   * Standards-Version bumped to 3.9.2 (no changes needed)
 
