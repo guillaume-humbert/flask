@@ -1,3 +1,9 @@
+flask (0.12.2-3) UNRELEASED; urgency=medium
+
+  * Change priority from extra to optional
+
+ -- Ondřej Nový <onovy@debian.org>  Sat, 09 Dec 2017 14:31:59 +0100
+
 flask (0.12.2-2) unstable; urgency=medium
 
   * Added Python 3.6 support for tests (Closes: #867482)

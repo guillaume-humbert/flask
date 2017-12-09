@@ -68,7 +68,6 @@ Description: micro web framework based on Werkzeug and Jinja2 - Python 3.x
 Package: python-flask-doc
 Section: doc
 Architecture: all
-Priority: extra
 Depends: ${misc:Depends}, ${sphinxdoc:Depends}
 Recommends: python-flask
 Description: micro web framework based on Werkzeug and Jinja2 - documentation
