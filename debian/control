@@ -8,7 +8,7 @@ Build-Depends: debhelper (>= 11), dh-python (>= 2.20160609~),
  python-all, python3-all,
  python-setuptools, python3-setuptools,
 # for docs:
- python-sphinx,
+ python3-sphinx,
 # for tests:
  python-pytest, python3-pytest,
  python-werkzeug, python-jinja2, python-itsdangerous, python-blinker, python-click,
