@@ -1,0 +1,85 @@
+From a00ee8bbda87ad35207eb83968a1d638dfdd9dd1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ond=C5=99ej=20Nov=C3=BD?= <onovy@debian.org>
+Date: Mon, 15 Jan 2018 14:43:41 +0100
+Subject: Don't rely on X-Requested-With for pretty print json response
+
+Origin: https://github.com/pallets/flask/commit/a7f1a21c1204828388eaed1e3903a74c904c8147
+---
+ docs/config.rst       | 8 +++-----
+ flask/app.py          | 2 +-
+ flask/json.py         | 2 +-
+ tests/test_basic.py   | 2 +-
+ tests/test_helpers.py | 2 ++
+ 5 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/docs/config.rst b/docs/config.rst
+index 6d37c1e..458270e 100644
+--- a/docs/config.rst
++++ b/docs/config.rst
+@@ -178,11 +178,9 @@ The following configuration values are used internally by Flask:
+                                   This is not recommended but might give
+                                   you a performance improvement on the
+                                   cost of cacheability.
+-``JSONIFY_PRETTYPRINT_REGULAR``   If this is set to ``True`` (the default)
+-                                  jsonify responses will be pretty printed
+-                                  if they are not requested by an
+-                                  XMLHttpRequest object (controlled by
+-                                  the ``X-Requested-With`` header)
++``JSONIFY_PRETTYPRINT_REGULAR``   If this is set to ``True`` or the Flask app
++                                  is running in debug mode, jsonify responses
++                                  will be pretty printed.
+ ``JSONIFY_MIMETYPE``              MIME type used for jsonify responses.
+ ``TEMPLATES_AUTO_RELOAD``         Whether to check for modifications of
+                                   the template source and reload it
+diff --git a/flask/app.py b/flask/app.py
+index 1404e17..fc5db71 100644
+--- a/flask/app.py
++++ b/flask/app.py
+@@ -314,7 +314,7 @@ class Flask(_PackageBoundObject):
+         'PREFERRED_URL_SCHEME':                 'http',
+         'JSON_AS_ASCII':                        True,
+         'JSON_SORT_KEYS':                       True,
+-        'JSONIFY_PRETTYPRINT_REGULAR':          True,
++        'JSONIFY_PRETTYPRINT_REGULAR':          False,
+         'JSONIFY_MIMETYPE':                     'application/json',
+         'TEMPLATES_AUTO_RELOAD':                None,
+     })
+diff --git a/flask/json.py b/flask/json.py
+index 16e0c29..bc32c3b 100644
+--- a/flask/json.py
++++ b/flask/json.py
+@@ -248,7 +248,7 @@ def jsonify(*args, **kwargs):
+     indent = None
+     separators = (',', ':')
+ 
+-    if current_app.config['JSONIFY_PRETTYPRINT_REGULAR'] and not request.is_xhr:
++    if current_app.config['JSONIFY_PRETTYPRINT_REGULAR'] or current_app.debug:
+         indent = 2
+         separators = (', ', ': ')
+ 
+diff --git a/tests/test_basic.py b/tests/test_basic.py
+index 7441d1b..9fdc7ea 100644
+--- a/tests/test_basic.py
++++ b/tests/test_basic.py
+@@ -1012,7 +1012,7 @@ def test_make_response_with_response_instance():
+         rv = flask.make_response(
+             flask.jsonify({'msg': 'W00t'}), 400)
+         assert rv.status_code == 400
+-        assert rv.data == b'{\n  "msg": "W00t"\n}\n'
++        assert rv.data == b'{"msg":"W00t"}\n'
+         assert rv.mimetype == 'application/json'
+ 
+         rv = flask.make_response(
+diff --git a/tests/test_helpers.py b/tests/test_helpers.py
+index 9320ef7..7f9d3d6 100644
+--- a/tests/test_helpers.py
++++ b/tests/test_helpers.py
+@@ -289,6 +289,8 @@ class TestJSON(object):
+     def test_json_key_sorting(self):
+         app = flask.Flask(__name__)
+         app.testing = True
++        app.debug = True
++
+         assert app.config['JSON_SORT_KEYS'] == True
+         d = dict.fromkeys(range(20), 'foo')
+ 
