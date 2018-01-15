@@ -3,6 +3,8 @@ flask (0.12.2-3) UNRELEASED; urgency=medium
   * Change priority from extra to optional
   * Standards-Version is 4.1.2 now
   * Remove unwanted license file from docs
+  * debian/patches/0003-Don-t-rely-on-X-Requested-With-for-pretty-print-json.patch:
+    Fix FTBFS (Closes: #884523)
 
  -- Ondřej Nový <onovy@debian.org>  Sat, 09 Dec 2017 14:31:59 +0100
 
