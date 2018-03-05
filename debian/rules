@@ -22,3 +22,6 @@ ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
 	rm -f $(CURDIR)/debian/python-flask-doc/usr/share/doc/python-flask-doc/html/_sources/license.rst.txt
 	rm -f $(CURDIR)/debian/python-flask-doc/usr/share/doc/python-flask-doc/html/license.html
 endif
+
+override_dh_installchangelogs:
+	dh_installchangelogs CHANGES
