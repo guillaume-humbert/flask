@@ -1,9 +1,9 @@
-flask (0.12.2-4) UNRELEASED; urgency=medium
+flask (0.12.2-4) unstable; urgency=medium
 
   * d/control: Set Vcs-* to salsa.debian.org
   * Add correct upstream changelog (Closes: #891342)
 
- -- Ondřej Nový <onovy@debian.org>  Tue, 13 Feb 2018 10:16:37 +0100
+ -- Ondřej Nový <onovy@debian.org>  Mon, 05 Mar 2018 14:20:35 +0100
 
 flask (0.12.2-3) unstable; urgency=medium
 
