@@ -1,5 +1,6 @@
-flask (0.12.2-5) UNRELEASED; urgency=medium
+flask (1.0.2-1) UNRELEASED; urgency=medium
 
+  * New upstream release
   * d/control: Remove ancient X-Python-Version field
   * d/control: Remove ancient X-Python3-Version field
 
