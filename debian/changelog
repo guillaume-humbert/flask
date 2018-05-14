@@ -1,3 +1,9 @@
+flask (0.12.2-5) UNRELEASED; urgency=medium
+
+  * d/control: Remove ancient X-Python-Version field
+
+ -- Ondřej Nový <onovy@debian.org>  Mon, 14 May 2018 08:04:14 +0200
+
 flask (0.12.2-4) unstable; urgency=medium
 
   * d/control: Set Vcs-* to salsa.debian.org
