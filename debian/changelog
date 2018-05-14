@@ -1,6 +1,7 @@
 flask (0.12.2-5) UNRELEASED; urgency=medium
 
   * d/control: Remove ancient X-Python-Version field
+  * d/control: Remove ancient X-Python3-Version field
 
  -- Ondřej Nový <onovy@debian.org>  Mon, 14 May 2018 08:04:14 +0200
 
