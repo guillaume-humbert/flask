@@ -3,6 +3,7 @@ flask (1.0.2-1) UNRELEASED; urgency=medium
   * New upstream release
   * d/control: Remove ancient X-Python-Version field
   * d/control: Remove ancient X-Python3-Version field
+  * d/patches/*: Drop. All applied upstream
 
  -- Ondřej Nový <onovy@debian.org>  Mon, 14 May 2018 08:04:14 +0200
 
