@@ -21,7 +21,7 @@ specific upload folder and displays a file to the user.  Let's look at the
 bootstrapping code for our application::
 
     import os
-    from flask import Flask, request, redirect, url_for
+    from flask import Flask, flash, request, redirect, url_for
     from werkzeug.utils import secure_filename
 
     UPLOAD_FOLDER = '/path/to/the/uploads'
@@ -58,7 +58,7 @@ the file and redirects the user to the URL for the uploaded file::
                 return redirect(request.url)
             file = request.files['file']
             # if user does not select file, browser also
-            # submit a empty part without filename
+            # submit an empty part without filename
             if file.filename == '':
                 flash('No selected file')
                 return redirect(request.url)
@@ -72,8 +72,8 @@ the file and redirects the user to the URL for the uploaded file::
         <title>Upload new File</title>
         <h1>Upload new File</h1>
         <form method=post enctype=multipart/form-data>
-          <p><input type=file name=file>
-             <input type=submit value=Upload>
+          <input type=file name=file>
+          <input type=submit value=Upload>
         </form>
         '''
 
@@ -149,9 +149,15 @@ config key::
     app = Flask(__name__)
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-The code above will limited the maximum allowed payload to 16 megabytes.
-If a larger file is transmitted, Flask will raise an
+The code above will limit the maximum allowed payload to 16 megabytes.
+If a larger file is transmitted, Flask will raise a
 :exc:`~werkzeug.exceptions.RequestEntityTooLarge` exception.
+
+.. admonition:: Connection Reset Issue
+
+    When using the local development server, you may get a connection
+    reset error instead of a 413 response. You will get the correct
+    status response when running the app with a production WSGI server.
 
 This feature was added in Flask 0.6 but can be achieved in older versions
 as well by subclassing the request object.  For more information on that
@@ -181,4 +187,4 @@ applications dealing with uploads, there is also a Flask extension called
 blacklisting of extensions and more.
 
 .. _jQuery: https://jquery.com/
-.. _Flask-Uploads: http://pythonhosted.org/Flask-Uploads/
+.. _Flask-Uploads: https://pythonhosted.org/Flask-Uploads/

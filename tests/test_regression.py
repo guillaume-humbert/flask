@@ -5,19 +5,18 @@
 
     Tests regressions.
 
-    :copyright: (c) 2015 by Armin Ronacher.
+    :copyright: © 2010 by the Pallets team.
     :license: BSD, see LICENSE for more details.
 """
 
-import pytest
-
-import os
 import gc
 import sys
-import flask
 import threading
+
+import pytest
 from werkzeug.exceptions import NotFound
 
+import flask
 
 _gc_lock = threading.Lock()
 
@@ -77,11 +76,9 @@ def test_safe_join_toplevel_pardir():
         safe_join('/foo', '..')
 
 
-def test_aborting():
+def test_aborting(app):
     class Foo(Exception):
         whatever = 42
-    app = flask.Flask(__name__)
-    app.testing = True
 
     @app.errorhandler(Foo)
     def handle_foo(e):
