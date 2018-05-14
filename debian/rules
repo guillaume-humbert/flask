@@ -24,4 +24,4 @@ ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
 endif
 
 override_dh_installchangelogs:
-	dh_installchangelogs CHANGES
+	dh_installchangelogs CHANGES.rst
