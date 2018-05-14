@@ -11,6 +11,7 @@ flask (1.0.2-1) UNRELEASED; urgency=medium
   * Standards-Version is 4.1.4 now (no changes needed)
   * Install examples
   * Add upstream metadata
+  * d/copyright: Bump my copyright year
 
  -- Ondřej Nový <onovy@debian.org>  Mon, 14 May 2018 08:04:14 +0200
 
