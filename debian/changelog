@@ -8,6 +8,7 @@ flask (1.0.2-1) UNRELEASED; urgency=medium
   * d/copyright: Change upstream copyright holders for new upstream release
   * d/rules: Upstream renamed CHANGES -> CHANGES.rst
   * Standards-Version is 4.1.4 now (no changes needed)
+  * Install examples
 
  -- Ondřej Nový <onovy@debian.org>  Mon, 14 May 2018 08:04:14 +0200
 
