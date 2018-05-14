@@ -3,7 +3,11 @@ Upstream-Name: Flask
 Source: https://pypi.python.org/pypi/Flask
 
 Files: *
-Copyright: (c) 2013, Armin Ronacher and contributors. See AUTHORS
+Copyright: (c) 2010-2018, Pallets team and community contributors
+           (c) 2010-2018, David Lord (davidism)
+           (c) 2010-2018, Adrian Mönnich (ThiefMaster)
+           (c) 2010-2018, Armin Ronacher (mitsuhiko)
+           (c) 2010-2018, Marcus Unterwaditzer (untitaker)
 License: BSD-3-clause
 
 Files: debian/*
