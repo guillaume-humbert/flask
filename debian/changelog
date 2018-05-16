@@ -1,4 +1,4 @@
-flask (1.0.2-1) UNRELEASED; urgency=medium
+flask (1.0.2-1) unstable; urgency=medium
 
   * New upstream release
   * d/control:
@@ -13,7 +13,7 @@ flask (1.0.2-1) UNRELEASED; urgency=medium
   * Add upstream metadata
   * d/copyright: Bump my copyright year
 
- -- Ondřej Nový <onovy@debian.org>  Mon, 14 May 2018 08:04:14 +0200
+ -- Ondřej Nový <onovy@debian.org>  Wed, 16 May 2018 15:39:05 +0200
 
 flask (0.12.2-4) unstable; urgency=medium
 
