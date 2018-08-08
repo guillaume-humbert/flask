@@ -20,6 +20,7 @@ master_doc = 'index'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
+    'sphinxcontrib.log_cabinet',
 ]
 
 intersphinx_mapping = {
