@@ -8,6 +8,7 @@ flask (1.0.2-2) UNRELEASED; urgency=medium
         d/p/0005-remove-carbon-ads.patch:
     Make docs build compatible with newer pallets_sphinx_themes
     (Closes: #908688)
+  * Bump standards version to 4.2.1 (no changes)
 
  -- Ondřej Nový <onovy@debian.org>  Wed, 08 Aug 2018 09:21:51 +0200
 
