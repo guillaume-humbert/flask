@@ -1,1 +1,5 @@
 0001-Don-t-require-sphinxcontrib.log_cabinet-extension.patch
+0002-remove-DocVersion-related.patch
+0003-fix-issue-no-theme-named-flask-found.patch
+0004-empty-CONTRIBUTING-rst.patch
+0005-remove-carbon-ads.patch
