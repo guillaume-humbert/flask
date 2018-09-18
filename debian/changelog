@@ -1,4 +1,4 @@
-flask (1.0.2-2) UNRELEASED; urgency=medium
+flask (1.0.2-2) unstable; urgency=medium
 
   * Convert git repository from git-dpm to gbp layout
   * Use 'python3 -m sphinx' instead of sphinx-build for building docs
@@ -10,7 +10,7 @@ flask (1.0.2-2) UNRELEASED; urgency=medium
     (Closes: #908688)
   * Bump standards version to 4.2.1 (no changes)
 
- -- Ondřej Nový <onovy@debian.org>  Wed, 08 Aug 2018 09:21:51 +0200
+ -- Ondřej Nový <onovy@debian.org>  Tue, 18 Sep 2018 11:42:45 +0200
 
 flask (1.0.2-1) unstable; urgency=medium
 
