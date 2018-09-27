@@ -1,9 +1,9 @@
-flask (1.0.2-3) UNRELEASED; urgency=medium
+flask (1.0.2-3) unstable; urgency=medium
 
   * Set https_proxy during building docs to prevent internet access
     (Closes: #909570)
 
- -- Ondřej Nový <onovy@debian.org>  Thu, 27 Sep 2018 10:45:59 +0200
+ -- Ondřej Nový <onovy@debian.org>  Thu, 27 Sep 2018 10:50:39 +0200
 
 flask (1.0.2-2) unstable; urgency=medium
 
