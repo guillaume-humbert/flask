@@ -16,7 +16,10 @@ override_dh_install:
 
 override_dh_sphinxdoc:
 ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
-	http_proxy='http://127.0.0.1:9/' PYTHONPATH=. python3 -m sphinx -N -q -E -b html docs/ debian/python-flask-doc/usr/share/doc/python-flask-doc/html/
+	http_proxy='http://127.0.0.1:9/' \
+		https_proxy='http://127.0.0.1:9/' \
+		PYTHONPATH=. \
+		python3 -m sphinx -N -q -E -b html docs/ debian/python-flask-doc/usr/share/doc/python-flask-doc/html/
 	dh_sphinxdoc
 	# Remove unwanted license file, we already reference d/copyright
 	rm -f $(CURDIR)/debian/python-flask-doc/usr/share/doc/python-flask-doc/html/_sources/license.rst.txt
