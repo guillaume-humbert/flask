@@ -7,15 +7,13 @@ Subject: Don't require sphinxcontrib.log_cabinet extension
  docs/conf.py | 1 -
  1 file changed, 1 deletion(-)
 
-diff --git a/docs/conf.py b/docs/conf.py
-index 0417244..dd13886 100644
 --- a/docs/conf.py
 +++ b/docs/conf.py
-@@ -20,7 +20,6 @@ master_doc = 'index'
+@@ -14,7 +14,6 @@
  extensions = [
-     'sphinx.ext.autodoc',
-     'sphinx.ext.intersphinx',
--    'sphinxcontrib.log_cabinet',
+     "sphinx.ext.autodoc",
+     "sphinx.ext.intersphinx",
+-    "sphinxcontrib.log_cabinet",
+     "pallets_sphinx_themes",
+     "sphinx_issues",
  ]
- 
- intersphinx_mapping = {
