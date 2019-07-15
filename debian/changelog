@@ -1,6 +1,7 @@
 flask (1.1.1-1) UNRELEASED; urgency=medium
 
   * New upstream version
+  * wrap-and-sort -ast
 
  -- Ondřej Nový <onovy@debian.org>  Tue, 16 Jul 2019 00:34:03 +0200
 
