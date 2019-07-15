@@ -2,6 +2,7 @@
 	
 export PYBUILD_NAME=flask
 export PYBUILD_AFTER_INSTALL=rm -rf '{destdir}/{install_dir}/site_egg'
+export PYBUILD_TEST_ARGS="-k-test_main_module_paths"
 
 %:
 	dh $@ --with python2,python3,sphinxdoc --buildsystem pybuild
