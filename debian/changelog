@@ -1,3 +1,9 @@
+flask (1.1.1-1) UNRELEASED; urgency=medium
+
+  * New upstream version
+
+ -- Ondřej Nový <onovy@debian.org>  Tue, 16 Jul 2019 00:34:03 +0200
+
 flask (1.0.2-3) unstable; urgency=medium
 
   * Set https_proxy during building docs to prevent internet access
