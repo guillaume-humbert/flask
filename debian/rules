@@ -1,6 +1,8 @@
 #!/usr/bin/make -f
 	
 export PYBUILD_NAME=flask
+export PYBUILD_BEFORE_TEST=cp CHANGES.rst {build_dir}
+export PYBUILD_AFTER_TEST=rm {build_dir}/CHANGES.rst
 export PYBUILD_AFTER_INSTALL=rm -rf '{destdir}/{install_dir}/site_egg'
 export PYBUILD_TEST_ARGS="-k-test_main_module_paths"
 
@@ -19,7 +21,7 @@ override_dh_sphinxdoc:
 ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
 	http_proxy='http://127.0.0.1:9/' \
 		https_proxy='http://127.0.0.1:9/' \
-		PYTHONPATH=. \
+		PYTHONPATH=src \
 		python3 -m sphinx -N -q -E -b html docs/ debian/python-flask-doc/usr/share/doc/python-flask-doc/html/
 	dh_sphinxdoc
 	# Remove unwanted license file, we already reference d/copyright

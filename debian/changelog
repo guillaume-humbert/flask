@@ -10,7 +10,9 @@ flask (1.1.1-1) UNRELEASED; urgency=medium
   * Bump standards version to 4.4.0 (no changes)
   * Add python3-sphinx-issues to B-D and bump required version of
     python{,3}-werkzeug
-  * d/rules: Disable test_main_module_paths test, it doesn't work
+  * d/rules:
+    - Disable test_main_module_paths test, it doesn't work
+    - Fix building for new upstream release
 
  -- Ondřej Nový <onovy@debian.org>  Tue, 16 Jul 2019 00:34:03 +0200
 
