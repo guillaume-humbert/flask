@@ -26,7 +26,7 @@ Build-Depends:
  python3-setuptools,
  python3-sphinx,
  python3-werkzeug (>= 0.14),
-Standards-Version: 4.2.1
+Standards-Version: 4.4.0
 Vcs-Git: https://salsa.debian.org/python-team/modules/flask.git
 Vcs-Browser: https://salsa.debian.org/python-team/modules/flask
 Homepage: http://flask.pocoo.org/
