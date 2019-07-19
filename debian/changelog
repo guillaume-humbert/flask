@@ -13,6 +13,7 @@ flask (1.1.1-1) UNRELEASED; urgency=medium
   * d/rules:
     - Disable test_main_module_paths test, it doesn't work
     - Fix building for new upstream release
+  * d/copyright: Bump my copyright year.
 
  -- Ondřej Nový <onovy@debian.org>  Tue, 16 Jul 2019 00:34:03 +0200
 
