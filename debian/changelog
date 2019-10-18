@@ -15,6 +15,7 @@ flask (1.1.1-1) UNRELEASED; urgency=medium
     - Fix building for new upstream release
   * d/copyright: Bump my copyright year.
   * Use debhelper-compat instead of debian/compat.
+  * Bump Standards-Version to 4.4.1.
 
  -- Ondřej Nový <onovy@debian.org>  Tue, 16 Jul 2019 00:34:03 +0200
 
