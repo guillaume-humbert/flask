@@ -1,4 +1,4 @@
-flask (1.1.1-1) UNRELEASED; urgency=medium
+flask (1.1.1-1) unstable; urgency=medium
 
   [ Ondřej Nový ]
   * New upstream version
@@ -8,7 +8,6 @@ flask (1.1.1-1) UNRELEASED; urgency=medium
     - 0003-fix-issue-no-theme-named-flask-found.patch
     - 0004-empty-CONTRIBUTING-rst.patch
     - 0005-remove-carbon-ads.patch
-  * Bump standards version to 4.4.0 (no changes)
   * Bump required version of python{,3}-werkzeug
   * d/rules:
     - Disable test_main_module_paths test, it doesn't work
@@ -22,7 +21,7 @@ flask (1.1.1-1) UNRELEASED; urgency=medium
   [ Salman Mohammadi ]
   * d/control: Change python-flask-doc to recommend python3-flask.
 
- -- Ondřej Nový <onovy@debian.org>  Tue, 16 Jul 2019 00:34:03 +0200
+ -- Ondřej Nový <onovy@debian.org>  Fri, 25 Oct 2019 14:31:38 +0200
 
 flask (1.0.2-3) unstable; urgency=medium
 
