@@ -96,7 +96,7 @@ Depends:
  ${misc:Depends},
  ${sphinxdoc:Depends},
 Recommends:
- python-flask,
+ python3-flask,
 Description: micro web framework based on Werkzeug and Jinja2 - documentation
  Flask is a micro web framework for Python based on Werkzeug, Jinja 2 and good
  intentions. A minimal Flask application looks like that:

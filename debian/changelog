@@ -1,5 +1,6 @@
 flask (1.1.1-1) UNRELEASED; urgency=medium
 
+  [ Ondřej Nový ]
   * New upstream version
   * wrap-and-sort -ast
   * Drop patches, not needed anymore or applied upstream:
@@ -16,6 +17,9 @@ flask (1.1.1-1) UNRELEASED; urgency=medium
   * Use debhelper-compat instead of debian/compat.
   * Bump Standards-Version to 4.4.1.
   * Disable sphinx-issues extension until python-sphinx-issues hits unstable.
+
+  [ Salman Mohammadi ]
+  * d/control: Change python-flask-doc to recommend python3-flask.
 
  -- Ondřej Nový <onovy@debian.org>  Tue, 16 Jul 2019 00:34:03 +0200
 
