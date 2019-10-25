@@ -8,14 +8,14 @@ flask (1.1.1-1) UNRELEASED; urgency=medium
     - 0004-empty-CONTRIBUTING-rst.patch
     - 0005-remove-carbon-ads.patch
   * Bump standards version to 4.4.0 (no changes)
-  * Add python3-sphinx-issues to B-D and bump required version of
-    python{,3}-werkzeug
+  * Bump required version of python{,3}-werkzeug
   * d/rules:
     - Disable test_main_module_paths test, it doesn't work
     - Fix building for new upstream release
   * d/copyright: Bump my copyright year.
   * Use debhelper-compat instead of debian/compat.
   * Bump Standards-Version to 4.4.1.
+  * Disable sphinx-issues extension until python-sphinx-issues hits unstable.
 
  -- Ondřej Nový <onovy@debian.org>  Tue, 16 Jul 2019 00:34:03 +0200
 
