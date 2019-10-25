@@ -17,6 +17,7 @@ flask (1.1.1-1) UNRELEASED; urgency=medium
   * Use debhelper-compat instead of debian/compat.
   * Bump Standards-Version to 4.4.1.
   * Disable sphinx-issues extension until python-sphinx-issues hits unstable.
+  * Bump debhelper compat level to 12.
 
   [ Salman Mohammadi ]
   * d/control: Change python-flask-doc to recommend python3-flask.

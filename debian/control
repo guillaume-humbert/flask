@@ -6,7 +6,7 @@ Uploaders:
  Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>,
  Ondřej Nový <onovy@debian.org>,
 Build-Depends:
- debhelper-compat (= 11),
+ debhelper-compat (= 12),
  dh-python (>= 2.20160609~),
  python-all,
  python-blinker,
