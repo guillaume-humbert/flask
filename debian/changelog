@@ -1,3 +1,9 @@
+flask (1.1.1-2) UNRELEASED; urgency=medium
+
+  * Enable sphinx-issues extension.
+
+ -- Ondřej Nový <onovy@debian.org>  Sun, 27 Oct 2019 20:45:08 +0100
+
 flask (1.1.1-1) unstable; urgency=medium
 
   [ Ondřej Nový ]
