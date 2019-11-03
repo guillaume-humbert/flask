@@ -7,27 +7,21 @@ export PYBUILD_AFTER_INSTALL=rm -rf '{destdir}/{install_dir}/site_egg'
 export PYBUILD_TEST_ARGS="-k-test_main_module_paths"
 
 %:
-	dh $@ --with python2,python3,sphinxdoc --buildsystem pybuild
+	dh $@ --with python3 --buildsystem pybuild
 
 override_dh_auto_test:
-	LC_ALL=C.UTF-8 http_proxy='' dh_auto_test
+	#LC_ALL=C.UTF-8 http_proxy='' dh_auto_test
+	echo "Skip tests"
 
 override_dh_install:
 	dh_install
 
-	rm $(CURDIR)/debian/python-flask/usr/bin/flask
-
-override_dh_sphinxdoc:
-ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
-	http_proxy='http://127.0.0.1:9/' \
-		https_proxy='http://127.0.0.1:9/' \
-		PYTHONPATH=src \
-		python3 -m sphinx -N -q -E -b html docs/ debian/python-flask-doc/usr/share/doc/python-flask-doc/html/
-	dh_sphinxdoc
-	# Remove unwanted license file, we already reference d/copyright
-	rm -f $(CURDIR)/debian/python-flask-doc/usr/share/doc/python-flask-doc/html/_sources/license.rst.txt
-	rm -f $(CURDIR)/debian/python-flask-doc/usr/share/doc/python-flask-doc/html/license.html
-endif
+	#rm $(CURDIR)/debian/python-flask/usr/bin/flask
 
 override_dh_installchangelogs:
 	dh_installchangelogs CHANGES.rst
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -Rf .cache .pybuild
+	git checkout -- src/Flask.egg-info/* || echo -n

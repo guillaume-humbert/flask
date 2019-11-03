@@ -6,16 +6,8 @@ Uploaders:
  Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>,
  Ondřej Nový <onovy@debian.org>,
 Build-Depends:
- debhelper-compat (= 12),
+ debhelper (>= 11.1.4~),
  dh-python (>= 2.20160609~),
- python-all,
- python-blinker,
- python-click (>= 5.1),
- python-itsdangerous (>= 0.24),
- python-jinja2 (>= 2.10),
- python-pytest (>= 3),
- python-setuptools,
- python-werkzeug (>= 0.15),
  python3-all,
  python3-blinker,
  python3-click (>= 5.1),
@@ -27,41 +19,11 @@ Build-Depends:
  python3-sphinx,
  python3-sphinx-issues,
  python3-werkzeug (>= 0.15),
-Standards-Version: 4.4.1
+Standards-Version: 4.1.4
 Vcs-Git: https://salsa.debian.org/python-team/modules/flask.git
 Vcs-Browser: https://salsa.debian.org/python-team/modules/flask
 Homepage: http://flask.pocoo.org/
 Testsuite: autopkgtest-pkg-python
-
-Package: python-flask
-Architecture: all
-Depends:
- python-click (>= 5.1),
- python-itsdangerous (>= 0.24),
- python-jinja2 (>= 2.10),
- python-werkzeug (>= 0.15),
- ${misc:Depends},
- ${python:Depends},
-Recommends:
- python-blinker,
- python-pkg-resources,
-Suggests:
- python-flask-doc,
-Description: micro web framework based on Werkzeug and Jinja2 - Python 2.7
- Flask is a micro web framework for Python based on Werkzeug, Jinja 2 and good
- intentions. A minimal Flask application looks like that:
- .
-   from flask import Flask
-   app = Flask(__name__)
- .
-   @app.route("/")
-   def hello():
-       return "Hello World!"
- .
-   if __name__ == '__main__':
-       app.run()
- .
- This package contains the Python 2.7 module.
 
 Package: python3-flask
 Architecture: all
@@ -88,27 +50,3 @@ Description: micro web framework based on Werkzeug and Jinja2 - Python 3.x
        app.run()
  .
  This package contains the Python 3.x module.
-
-Package: python-flask-doc
-Section: doc
-Architecture: all
-Depends:
- ${misc:Depends},
- ${sphinxdoc:Depends},
-Recommends:
- python3-flask,
-Description: micro web framework based on Werkzeug and Jinja2 - documentation
- Flask is a micro web framework for Python based on Werkzeug, Jinja 2 and good
- intentions. A minimal Flask application looks like that:
- .
-   from flask import Flask
-   app = Flask(__name__)
- .
-   @app.route("/")
-   def hello():
-       return "Hello World!"
- .
-   if __name__ == '__main__':
-       app.run()
- .
- This package contains the documentation for Flask.

@@ -1,33 +1,8 @@
-flask (1.1.1-2) UNRELEASED; urgency=medium
+flask (1.1.1-1ubuntu1) bionic; urgency=medium
 
-  * Enable sphinx-issues extension.
-
- -- Ondřej Nový <onovy@debian.org>  Sun, 27 Oct 2019 20:45:08 +0100
-
-flask (1.1.1-1) unstable; urgency=medium
-
-  [ Ondřej Nový ]
   * New upstream version
-  * wrap-and-sort -ast
-  * Drop patches, not needed anymore or applied upstream:
-    - 0002-remove-DocVersion-related.patch
-    - 0003-fix-issue-no-theme-named-flask-found.patch
-    - 0004-empty-CONTRIBUTING-rst.patch
-    - 0005-remove-carbon-ads.patch
-  * Bump required version of python{,3}-werkzeug
-  * d/rules:
-    - Disable test_main_module_paths test, it doesn't work
-    - Fix building for new upstream release
-  * d/copyright: Bump my copyright year.
-  * Use debhelper-compat instead of debian/compat.
-  * Bump Standards-Version to 4.4.1.
-  * Disable sphinx-issues extension until python-sphinx-issues hits unstable.
-  * Bump debhelper compat level to 12.
 
-  [ Salman Mohammadi ]
-  * d/control: Change python-flask-doc to recommend python3-flask.
-
- -- Ondřej Nový <onovy@debian.org>  Fri, 25 Oct 2019 14:31:38 +0200
+ -- Guillaume J Humbert <guillaume.j.humbert@pm.me>  Mon, 28 Oct 2019 19:22:26 +0800
 
 flask (1.0.2-3) unstable; urgency=medium
 
